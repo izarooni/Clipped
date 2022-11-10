@@ -12,8 +12,8 @@
 - Configurable video loading batch size
 - HTML5 video thumbnails
 - Video likes, dislikes and views (WIP)
-- Video uploading
-- Customizable video titles and descriptions
+- Video uploading with customizable titles and descriptions
+- Set video privacy (visibility on profile and global feed)
 
 ---
 
