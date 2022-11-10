@@ -5,10 +5,10 @@ First, configure the environment:
  db_host=localhost
  db_port=33060
  db_user=root
- db_pass=fireworks
- db_schema=clapped
+ db_pass=
+ db_schema=
 
- video_dir=G:\Videos\Recording\2022
+ video_dir=c:\Videos
 
 init_load=30
 load_size=30

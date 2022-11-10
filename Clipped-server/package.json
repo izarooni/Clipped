@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "name": "Clipped-server",
+  "name": "clipped-server",
   "version": "0.1.0",
   "description": "Back-end server for Clipped",
   "main": "index.js",
