@@ -9,8 +9,9 @@ import Navbar from '/components/navbar';
 
 export default function Video({ video, owner, user }) {
     const Router = useRouter();
-    const title = useRef(null);
-    const description = useRef(null);
+    const titleInput = useRef(null);
+    const descriptionEl = useRef(null);
+    const descriptionInput = useRef(null);
 
     const [editable, setEditable] = useState(false);
     const [likes, setLikes] = useState(video.likes);
@@ -77,8 +78,8 @@ export default function Video({ video, owner, user }) {
         if (!editable) return;
         setError(''); setSuccess('');
 
-        const sTitle = title.current.value || video.fileName;
-        const sDescription = description.current.value || '';
+        const sTitle = titleInput.current.value || video.fileName;
+        const sDescription = descriptionInput.current.value || '';
 
         video.displayName = sTitle;
         video.description = sDescription;
@@ -103,8 +104,13 @@ export default function Video({ video, owner, user }) {
     const onShowSettings = (e) => setEditable(!editable);
 
     useEffect(() => {
-        if (title.current) title.current.value = video.displayName;
-        if (description.current) description.current.value = video.description;
+        if (titleInput.current) titleInput.current.value = video.displayName;
+        if (descriptionInput.current) descriptionInput.current.value = video.description;
+        if (descriptionEl.current) {
+            descriptionEl.current.onmouseup = (e) => {
+                descriptionEl.current.classList.toggle('line-clamp-2');
+            };
+        }
     }, [editable]);
 
     return (
@@ -116,11 +122,13 @@ export default function Video({ video, owner, user }) {
 
                 <div className="p-5 container mx-auto">
 
+                    {/* video player */}
                     <video className="w-full mx-auto" controls playsInline>
                         <source src={`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/${video.ID}#t=0.001`} type="video/mp4" />
                     </video>
 
                     <div className="flex justify-between items-center xl:px-12 py-2">
+                        {/* video first-look stats */}
                         <div className="flex flex-col truncate">
                             <p className="text-2xl">{video.displayName}</p>
                             <p className="mb-1">
@@ -128,6 +136,7 @@ export default function Video({ video, owner, user }) {
                             </p>
                         </div>
 
+                        {/* like / dislike */}
                         <div className="flex items-center space-x-4">
                             <div className="text-center transition-all hover:text-green-500 active:text-green-600">
                                 <button onClick={onSubmitLike} className="px-6 py-2">
@@ -144,17 +153,21 @@ export default function Video({ video, owner, user }) {
                         </div>
                     </div>
 
-                    <div className="flex flex-col md:flex-row space-y-4 border-t border-t-white/10 p-4">
-                        <div className="flex space-x-4">
-                            <Avatar user={video.ownerID} className="w-12" />
+                    {!video.description ? '' :
+                        <div className="my-4">
+                            <p ref={descriptionEl} className="whitespace-pre p-4 rounded transition-all hover:bg-white/10
+                        line-clamp-2 cursor-pointer">{video.description}</p>
+                        </div>
+                    }
 
-                            <div className="flex flex-col">
-                                <p className="text-xl">{owner.displayName}</p>
-                                <p className="text-sm">{video.description}</p>
-                            </div>
+                    {/* video details */}
+                    <div className="flex flex-col md:flex-row space-y-4 border-t border-t-white/10">
+                        <div className="flex space-x-4 p-4 flex-grow">
+                            <Avatar user={video.ownerID} className="w-12" />
+                            <p className="text-xl">{owner.displayName}</p>
                         </div>
 
-                        <div className="flex-grow flex items-center justify-center md:justify-end p-4 space-x-2">
+                        <div className="flex-grow flex items-center justify-center md:justify-end space-x-4 p-4">
                             {(() => {
                                 return video.private
                                     // show the private icon when private
@@ -167,16 +180,9 @@ export default function Video({ video, owner, user }) {
                             {(() => {
                                 if (!user || user.ID != video.ownerID) return;
 
-                                if (editable) {
-                                    return (
-                                        <>
-                                            <i onClick={onSetVideoProps} className="fa-regular fa-floppy-disk py-3 px-8 rounded outline outline-1 outline-white/10 transition-all hover:outline-0 hover:bg-green-500/60 active:bg-green-600/60 cursor-pointer" type="button"></i>
-                                            <i onClick={onShowSettings} className="fa-solid fa-ban py-3 px-4 rounded outline outline-1 outline-white/10 transition-all hover:outline-0 hover:bg-red-500/60 active:bg-red-600/60 cursor-pointer" type="button"></i>
-                                        </>
-                                    );
-                                } else return (
-                                    <i onClick={onShowSettings} className="fa-solid fa-pencil py-3 px-4 rounded outline outline-1 outline-white/10 transition-all hover:outline-0 hover:bg-white/20 active:bg-white/10 cursor-pointer"></i>
-                                );
+                                return editable
+                                    ? <button onClick={onShowSettings} className="fa-solid fa-ban py-3 px-4 rounded outline outline-1 outline-white/10 transition-all hover:outline-0 hover:bg-white/20 active:bg-white/10 cursor-pointer" type="button"></button>
+                                    : <button onClick={onShowSettings} className="fa-solid fa-pencil py-3 px-4 rounded outline outline-1 outline-white/10 transition-all hover:outline-0 hover:bg-white/20 active:bg-white/10 cursor-pointer" type="button"></button>
                             })()}
                         </div>
                     </div>
@@ -185,12 +191,13 @@ export default function Video({ video, owner, user }) {
                         <>
                             <div className="p-4 grid gap-4">
                                 <label className="-mb-2 text-sm">Title</label>
-                                <input ref={title} className="flex-grow rounded p-1 bg-transparent outline outline-1 outline-white/40 hover:outline-white/60" type="text" placeholder={video.displayName} />
+                                <input ref={titleInput} className="flex-grow rounded p-1 bg-transparent outline outline-1 outline-white/40 hover:outline-white/60" type="text" placeholder={video.displayName} />
 
                                 <label className="-mb-2 txt-sm">Description</label>
-                                <textarea ref={description} className="flex-grow rounded p-1 bg-transparent outline outline-1 outline-white/40 hover:outline-white/60" type="text" />
+                                <textarea ref={descriptionInput} className="flex-grow rounded p-1 bg-transparent outline outline-1 outline-white/40 hover:outline-white/60 whitespace-pre" type="text" rows="5" />
 
-                                <div className="text-end">
+                                <div className="text-end space-x-4">
+                                    <button onClick={onSetVideoProps} className="p-2 rounded outline outline-1 outline-green-500 transition-all hover:outline-0 hover:bg-green-600 active:bg-green-600/60 cursor-pointer" type="button">Save Video</button>
                                     <button onMouseDown={onDeleteDown} onMouseUp={onDeleteUp} className="hold-button outline-red-500 after:bg-red-600" type="button">Delete Video</button>
                                 </div>
                             </div>
