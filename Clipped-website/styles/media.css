@@ -1,0 +1,78 @@
+:root {
+    /* p-5 equivalent */
+    --thumb-width: 20px;
+}
+
+.vds-ui-control {
+    @apply relative h-8 w-8;
+}
+
+vds-time-slider {
+    @apply absolute bottom-16 w-full cursor-pointer;
+    /* prevent thumb flowing out of slider. */
+    margin: 0 calc(var(--thumb-width) / 2);
+}
+vds-time-slider[dragging] .slider-thumb-container {
+    /* responsive slide-thumb */
+    left: var(--vds-pointer-percent);
+}
+
+vds-play-button {
+}
+
+vds-mute-button {
+}
+
+vds-volume-slider {
+}
+
+vds-time {
+}
+
+vds-aspect-ratio {
+}
+
+vds-video {
+}
+
+.slider-track {
+    @apply bg-white/50 h-2;
+    width: calc(100% - var(--thumb-width));
+    position: absolute;
+    top: 50%;
+    left: 0;
+    /* center to slider-thumb */
+    transform: translateY(-50%);
+}
+
+.slider-track.slider-progress {
+    @apply bg-red-500;
+    transform-origin: left center;
+    /* center to slider-thumb and scale horizontally based on video progress */
+    transform: translateY(-50%) scaleX(var(--vds-fill-rate));
+    will-change: transform;
+    /** above track. */
+    z-index: 1;
+}
+
+.slider-thumb-container {
+    @apply absolute top-0 h-full;
+    left: clamp(
+        /* min  value */ 0%,
+        /* pref value */ calc(100% - var(--thumb-width) / 2),
+        /* max  value */ var(--vds-fill-percent) - var(--thumb-width) / 2
+    );
+    width: var(--thumb-width);
+    /* center horizontally */
+    transform: translateX(-50%);
+    /** above track fill. */
+    z-index: 2;
+    will-change: left;
+}
+
+.slider-thumb {
+    @apply rounded-full absolute top-0 left-0
+    bg-red-800  -translate-y-1/2;
+    width: var(--thumb-width);
+    height: var(--thumb-width);
+}

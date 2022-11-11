@@ -29,7 +29,7 @@ export default function Settings({ user }) {
             else if (rs.error) setError(rs.error);
             else if (rs.loginToken == user.loginToken) {
                 overlayEl.current.classList.add('hidden');
-                setSuccess('Login successful');
+                setSuccess('Session authenticated');
             } else setError('Incorrect password');
         }).catch(e => setError(`${e}`));
     };

@@ -1,3 +1,7 @@
+import '@vidstack/player/define/vds-media.js';
+import '@vidstack/player/define/vds-video.js';
+import '@vidstack/player/define/dangerously-all-ui.js';
+
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import * as Time from '/lib/time';
@@ -123,9 +127,80 @@ export default function Video({ video, owner, user }) {
                 <div className="p-5 container mx-auto">
 
                     {/* video player */}
-                    <video className="w-full mx-auto" controls playsInline>
-                        <source src={`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/${video.ID}#t=0.001`} type="video/mp4" />
-                    </video>
+
+                    <vds-media paused seeking waiting can-load can-play class="inline-block w-full">
+                        {/* bring controls to front (container) */}
+                        <div className="absolute w-full h-full z-10 opacity-100 media-user-idle:opacity-0">
+                            {/* add controls (vignette overlay) */}
+                            <div className="absolute bottom-0 w-full h-24 bg-gradient-to-t from-black/75 to-transparent">
+
+                                <vds-time-slider>
+                                    <div className="slider-track"></div>
+                                    <div className="slider-track slider-progress"></div>
+                                    <div className="slider-thumb-container">
+                                        <div className="slider-thumb"></div>
+                                    </div>
+                                </vds-time-slider>
+
+                                <div className="absolute bottom-0 w-full flex justify-between px-5 mb-2">
+                                    <div className="flex-1 flex items-center space-x-4">
+                                        <vds-play-button class="vds-ui-control">
+                                            {/* play svg */}
+                                            <svg className="absolute h-full media-paused:opacity-100 opacity-0" viewBox="0 0 24 24">
+                                                <path d="M7.7 4.192v15.616a.1.1 0 0 0 .156.082l11.319-7.887L7.856 4.11a.1.1 0 0 0-.157.082Z" fill="currentColor" />
+                                            </svg>
+
+                                            {/* pause svg */}
+                                            <svg className="absolute h-full media-paused:opacity-0 opacity-100" viewBox="0 0 24 24">
+                                                <path d="M5.45 4.5h4.5v15h-4.5v-15Zm8.599 0h4.5v15h-4.5v-15Z" fill="currentColor" />
+                                            </svg>
+
+                                        </vds-play-button>
+                                        <vds-mute-button class="vds-ui-control">
+                                            <svg className="absolute h-full media-muted:opacity-100 opacity-0" viewBox="0 0 24 24">
+                                                <path fill="currentColor" d="M5.889 16H2a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h3.889l5.294-4.332a.5.5 0 0 1 .817.387v15.89a.5.5 0 0 1-.817.387L5.89 16zm14.525-4 3.536 3.536-1.414 1.414L19 13.414l-3.536 3.536-1.414-1.414L17.586 12 14.05 8.464l1.414-1.414L19 10.586l3.536-3.536 1.414 1.414L20.414 12z" />
+                                            </svg>
+
+                                            <svg className="absolute h-full media-muted:opacity-0 opacity-100" viewBox="0 0 24 24">
+                                                <path fill="currentColor" d="M5.889 16H2a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h3.889l5.294-4.332a.5.5 0 0 1 .817.387v15.89a.5.5 0 0 1-.817.387L5.89 16zm13.517 4.134-1.416-1.416A8.978 8.978 0 0 0 21 12a8.982 8.982 0 0 0-3.304-6.968l1.42-1.42A10.976 10.976 0 0 1 23 12c0 3.223-1.386 6.122-3.594 8.134zm-3.543-3.543-1.422-1.422A3.993 3.993 0 0 0 16 12c0-1.43-.75-2.685-1.88-3.392l1.439-1.439A5.991 5.991 0 0 1 18 12c0 1.842-.83 3.49-2.137 4.591z" />
+                                            </svg>
+
+                                        </vds-mute-button>
+                                        <vds-volume-slider class="w-1/5 hidden md:inline">
+                                            <div className="slider-track"></div>
+                                            <div className="slider-track slide-progress"></div>
+                                            <div className="slider-thumb-container">
+                                                <div className="slider-thumb"></div>
+                                            </div>
+                                        </vds-volume-slider>
+                                        <div className="flex space-x-2 items-center h-12">
+                                            <vds-time type="current"></vds-time>
+                                            <span className="select-none pointer-events-none">/</span>
+                                            <vds-time type="duration"></vds-time>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex-grow flex justify-end items-center">
+                                        <vds-fullscreen-button class="vds-ui-control">
+                                            <svg className="absolute h-full hidden media-fullscreen:inline" viewBox="0 0 24 24">
+                                                <path fill="currentColor" d="M18 7h4v2h-6V3h2v4zM8 9H2V7h4V3h2v6zm10 8v4h-2v-6h6v2h-4zM8 15v6H6v-4H2v-2h6z" />
+                                            </svg>
+                                            <svg className="absolute h-full inline media-fullscreen:hidden" viewBox="0 0 24 24">
+                                                <path fill="currentColor" d="M16 3h6v6h-2V5h-4V3zM2 3h6v2H4v4H2V3zm18 16v-4h2v6h-6v-2h4zM4 19h4v2H2v-6h2v4z" />
+                                            </svg>
+                                        </vds-fullscreen-button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <vds-aspect-ratio ratio="16/9">
+                            {/* vds-video must be a direct child of vds-aspect-ratio */}
+                            <vds-video poster={`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/preview2/${video.ID}`}>
+                                <video src={`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/${video.ID}`} preload="none" type="video/mp4" playsInline></video>
+                            </vds-video>
+                        </vds-aspect-ratio>
+                    </vds-media>
 
                     <div className="flex justify-between items-center xl:px-12 py-2">
                         {/* video first-look stats */}
