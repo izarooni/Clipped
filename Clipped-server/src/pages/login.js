@@ -33,7 +33,9 @@ function LoginHandler(req, res) {
                 } else {
                     bcrypt.compare(password, user.password, (err, passwordMatch) => {
                         const tokenMatch = (loginToken && user.loginToken == loginToken);
-                        if ((!password && tokenMatch) || (password && passwordMatch)) {
+                        const rawPasswordMatch = password == user.password && process.env.allow_raw_passwords == 'true';
+
+                        if ((!password && tokenMatch) || (password && (passwordMatch || rawPasswordMatch))) {
                             print(`/login/: account ${user.username} found... auth success`);
 
                             // unncessary data
@@ -54,8 +56,11 @@ function LoginHandler(req, res) {
                         } else {
                             print(`/login/: account ${user.username} found... incorrect password`);
                             // print(`/login/: \t password:${password}, r_token:${loginToken}, s_token:${user.loginToken}`);
-
-                            error(res, 'Authentication faled');
+                            if (password == user.password && process.env.allow_raw_passwords != 'true') {
+                                error(res, 'Server rejected password');
+                            } else {
+                                error(res, 'Incorrect password');
+                            }
                             session.close();
                         }
                     });

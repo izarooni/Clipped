@@ -54,7 +54,7 @@ export default function Login() {
         })
             .then(res => res.json())
             .then(res => {
-                if (res.error) setError(`${res.error} (${res.errorCode})`);
+                if (res.error) setError(`${res.error}`);
                 else {
                     document.cookie = `user=${JSON.stringify(res)};path=/;Max-Age=86400000`;
                     window.location = '/profile';

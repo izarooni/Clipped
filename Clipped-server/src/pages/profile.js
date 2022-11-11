@@ -1,6 +1,7 @@
 import { getConnection, sanitize } from '../database.js';
 import { error } from '../utils.js';
 import fs from 'fs';
+import * as bcrypt from 'bcrypt';
 import * as identicon from 'identicon';
 import * as User from '../models/user.js';
 
@@ -11,31 +12,53 @@ const print = (s) => {
 function ProfileUpdate(req, res) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
 
-    const { type, localUser } = req.body;
-    if (!type || type.length < 1 || !localUser || localUser.length < 1) return error(res, 'invalid request type');
+    const { type, localUser: rawUser, newPassword } = req.body;
+    if (!type || type.length < 1 || !rawUser) return error(res, 'invalid request type');
 
-    const user = User.fromObject(localUser);
-    if (!user.ID) return error(res, 'please specify an ID');
-    print(`/profile/update/${type}/: update for user ${user.username} (${user.ID})`);
+    const localUser = User.fromObject(rawUser);
+    if (!rawUser || !localUser.ID) return error(res, 'please specify an ID');
+    print(`/profile/update/${type}/: update for localUser ${localUser.username} (${localUser.ID})`);
 
-    getConnection().then((session) => {
-        const users = session.getDefaultSchema().getTable('users');
+    getConnection().then(async (session) => {
+        let rs = await session.sql('select * from users where id = ? limit 1').bind(localUser.ID).execute();
+        let row = rs.fetchOne();
+        if (!row) return err(res, 'Invalid session');
+        const user = User.fromArray(row);
+        if (!user) return err(res, 'Unknown error');
 
         switch (type) {
-            case 'name':
-                if (user.displayName.length < 3) {
-                    if (!user.displayName.length) {
+            case 'settings':
+                if (localUser.displayName.length < 3) {
+                    if (!localUser.displayName.length) {
                         // replace with original name when none is provided
                         user.displayName = user.username;
                     } else {
                         session.close();
-                        return error(res, 'Name is too short.');
+                        return error(res, 'Name is too short');
                     }
                 }
-                users.update().set('display_name', user.displayName)
-                    .where('id = ' + user.ID).execute().then((rs) => {
-                        print(`profile/update/${type}/: user ${user.ID} updated`);
-                        res.end(JSON.stringify({ 'success': 'Setting saved' }));
+                if (newPassword) {
+                    if (newPassword.length < 4) {
+                        session.close();
+                        return error(res, 'New password is too short');
+                    } else {
+                        bcrypt.hash(newPassword, 10, (err, hash) => {
+                            session
+                                .sql('update users set password = ?, updated_at = current_timestamp where id = ?')
+                                .bind(hash, user.ID).execute().then(rs => {
+                                    print(`profile/update/${type}/: user ${user.ID} password updated`);
+                                    res.end(JSON.stringify({ 'success': 'Password saved' }));
+                                    session.close();
+                                });
+                        });
+                    }
+                }
+
+                session
+                    .sql('update users set display_name = ?, updated_at = current_timestamp where id = ?')
+                    .bind(localUser.displayName, user.ID).execute().then(rs => {
+                        print(`profile/update/${type}/: user ${user.ID} display name updated to ${localUser.displayName}`);
+                        res.end(JSON.stringify({ 'success': 'Display name saved' }));
                         session.close();
                     });
                 break;
@@ -64,7 +87,7 @@ function ProfilePage(req, res) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
 
     const { ID } = req.params;
-    if (!ID) return error(res, 'Must specify an ID.');
+    if (!ID) return error(res, 'Must specify an ID');
 
     getConnection().then((session) => {
         let s = isNaN(parseInt(ID))

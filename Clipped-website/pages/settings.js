@@ -40,7 +40,7 @@ export default function Settings({ user }) {
 
         if (Date.now() - saveTimestamp < 1000) return setError('Hold the save button longer...');
 
-        user.displayName = displayNameEl.current.value;
+        setDisplayName(user.displayName = displayNameEl.current.value);
         document.cookie = `user=${JSON.stringify(user)};path=/;Max-Age=86400000`;
 
         fetch(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/profile/update`, {
@@ -51,8 +51,9 @@ export default function Settings({ user }) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                type: 'name',
+                type: 'settings',
                 localUser: user,
+                newPassword: newPasswordEl.current.value,
             })
         })
             .then(rs => rs.json())
@@ -96,14 +97,17 @@ export default function Settings({ user }) {
 
                     <div className="flex items-center">
                         <label className="pr-16">Display Name</label>
-                        <input ref={displayNameEl} placeholder={displayName} className="flex-grow bg-transparent focus:outline-none p-1 rounded border border-white/10 py-2 px-4" type="text" />
+                        <div className="flex flex-col w-full">
+                            <input ref={displayNameEl} placeholder={displayName} className="flex-grow bg-transparent focus:outline-none p-1 rounded border border-white/10 py-2 px-4" type="text" />
+                            <small className="ml-2 italic text-white/60">Leave blank to reset</small>
+                        </div>
                     </div>
 
                     <div className="flex items-center">
                         <label className="pr-16">New Password</label>
                         <div className="flex flex-col w-full">
                             <input ref={newPasswordEl} className="flex-grow bg-transparent focus:outline-none p-1 rounded border border-white/10 py-2 px-4" type="password" />
-                            <small className="italic text-white/60">Leave blank to ignore</small>
+                            <small className="ml-2 italic text-white/60">Leave blank to ignore</small>
                         </div>
                     </div>
                 </div>
