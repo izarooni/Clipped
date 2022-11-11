@@ -1,25 +1,16 @@
-## Getting Started
+# Getting Started
 
-First, configure the environment:
-```ini
- db_host=localhost
- db_port=33060
- db_user=root
- db_pass=
- db_schema=
+### Environment Variables
+Rename the file `.env.exmaple` to `.env` and configure to your liking.
 
- video_dir=c:\Videos
-
-init_load=30
-load_size=30
-max_load=500
-```
-
-The `video_dir` property is used to initialize data on first-run. It retrieves video data and processes thumbnails.
-
-Second, run the development server:
-
+### Running the Server
 ```bash
+npm install
 npm run start
 ```
 
+The default webAdmin account created when first running is:
+```
+username: admin
+password: 1234
+```

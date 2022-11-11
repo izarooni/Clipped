@@ -1,4 +1,4 @@
-## Features
+# Features
 
 ### Server
 - Account authentication
