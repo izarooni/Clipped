@@ -43,11 +43,11 @@ export async function initialize(session) {
     rs = await session.sql('select * from users where id = 1').execute();
     let user = rs.fetchOne();
     if (!user) {
-        session.sql(`insert into users (id, web_admin, display_name, username, password) values (1, 1, 'admin', 'admin', '123')`).execute().then(rs => {
+        session.sql(`insert into users (id, web_admin, display_name, username, password) values (1, 1, 'admin', 'admin', '1234')`).execute().then(rs => {
             let id = rs.getAutoIncrementValue();
             if (id) {
                 print(`=============================================================================`);
-                print(`[Database] Created default web-admin account. username: admin, password: 123`);
+                print(`[Database] Created default web-admin account. username: admin, password: 1234`);
                 print(`=============================================================================`);
             }
         });
@@ -71,7 +71,7 @@ export async function initialize(session) {
             private int not null default 1,
             primary key (id),
             unique (file_path),
-            index (private)
+            index (private),
             foreign key (owner_id) references users (id))`).execute()
     warnings = rs.getWarnings();
     if (warnings.length == 0) print('videos table exists');
