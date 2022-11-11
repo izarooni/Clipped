@@ -43,5 +43,18 @@ export function fromObject(a) {
         dislikes: a.dislikes || 0,
         private: a.private || 1,
         description: a.description || null,
+
+        /**
+         * custom value, not part of the main structure.
+         * ownerUsername is used on video feeds where
+         * only the avatar is shown.
+         * 
+         * this helps skip a process in the back-end to get the username,
+         * instead it can be retrieved with the video via SQL join
+         * 
+         * we can't store the username with the video because the display name
+         * is changeable at the user's discretion
+         */
+        ownerUsername: a.ownerUsername || null,
     };
 }

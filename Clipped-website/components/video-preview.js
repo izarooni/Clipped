@@ -1,6 +1,6 @@
+import Link from 'next/link';
 import * as Time from '/lib/time';
 import Avatar from '/components/avatar';
-import Link from 'next/link';
 
 const play = (e) => { if (e.target.readyState == 4) e.target.play(); }
 const pause = (e) => { if (e.target.readyState == 4) e.target.pause(); }
@@ -36,7 +36,8 @@ export default function VideoPreview({ avatar, video }) {
                     <Link href={`/v/${video.ID}`}>
                         <a className="stretched-link font-bold max-h-12 whitespace-normal truncate line-clamp-2">{video.displayName}</a>
                     </Link>
-                    <p className="text-sm">{`${video.views}`} views &middot; {Time.toString(Date.now() - video.createdAt)}</p>
+                    <p className="text-sm text-white/80">{video.ownerUsername}</p>
+                    <p className="text-sm text-white/80">{`${video.views}`} views &middot; {Time.toString(Date.now() - video.createdAt)}</p>
                 </div>
             </div>
         </div>

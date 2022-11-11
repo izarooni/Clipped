@@ -71,8 +71,8 @@ export async function initialize(session) {
             private int not null default 1,
             primary key (id),
             unique (file_path),
-            foreign key (owner_id) references users (id)
-                    )`).execute()
+            index (private)
+            foreign key (owner_id) references users (id))`).execute()
     warnings = rs.getWarnings();
     if (warnings.length == 0) print('videos table exists');
     else if (warnings) print('Checking videos table...', warnings[0].msg);

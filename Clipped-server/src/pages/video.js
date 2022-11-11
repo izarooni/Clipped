@@ -161,7 +161,6 @@ export function VideoSearch(req, res) {
     const { a, b, c } = req.params;
     const batchCount = parseInt(process.env.load_size);
 
-    print(`/videos/${a}/: (${b}, ${c}) processing`);
     getConnection().then(async (session) => {
 
         if (a == 'popular') {
@@ -169,19 +168,34 @@ export function VideoSearch(req, res) {
             const start = Math.max(0, parseInt(b));
 
             session.sql(
-                `select * from videos where private = 0 order by views desc limit ${batchCount} offset ${start}`
+                `select v.*, u.display_name 
+                from videos v 
+                join users u on v.owner_id = u.ID 
+                where v.private = 0 
+                order by v.views desc 
+                limit ${batchCount} offset ${start}`
+                // `select * from videos 
+                // where private = 0 
+                // order by views desc 
+                // limit ${batchCount} offset ${start}`
             ).execute().then((rs) => {
                 let row = rs.fetchAll();
                 if (row.length == 0) {
-                    error(res, 'Reached server limit');
+                    if (start < 1) error(res, 'No videos available');
+                    else error(res, 'Reached server limit');
+
                     return session.close();;
                 }
 
-                let videos = [...row].map(Video.fromArray);
+                let videos = [...row].map((v) => {
+                    let ret = new Video.fromArray(v);
+                    ret.ownerUsername = v[v.length - 1];
+                    return ret;
+                });
 
                 res.end(JSON.stringify(videos));
                 session.close();
-                print(`/videos/popular/: sent ${videos.length} videos, limit ${batchCount} offset ${start}`);
+                print(`/videos/${a}/: (${b}, ${c}) processing... sent ${videos.length} videos, limit ${batchCount} offset ${start}`);
             });
         } else if (a == 'browse') {
             // cursor starting position
@@ -210,7 +224,7 @@ export function VideoSearch(req, res) {
                         return session.close();
                     }
 
-                    print(`/videos/browse/${b}/: sent ${rows.length} videos, limit ${batchCount} offset ${start}`);
+                    print(`/videos/${a}/: (${b}, ${c}) processing... sent ${rows.length} videos: limit ${batchCount} offset ${start}`);
                     res.end(JSON.stringify(videos));
                     session.close();
                 });
@@ -231,7 +245,7 @@ export function VideoSearch(req, res) {
                     return session.close();
                 }
 
-                print(`/videos/user/${b}/: sent ${rows.length} videos, limit ${batchCount} offset ${start}`);
+                print(`/videos/${a}/: (${b}, ${c}) processing... sent ${rows.length} videos: limit ${batchCount} offset ${start}`);
                 res.end(JSON.stringify(videos));
                 session.close();
             });
@@ -248,12 +262,12 @@ export function VideoSearch(req, res) {
                     return session.close();
                 }
 
-                print(`/videos/private/${b}/: sent ${rows.length} videos`);
+                print(`/videos/${a}/: (${b}, ${c}) processing... sent ${rows.length} videos`);
                 res.end(JSON.stringify(videos));
                 session.close();
             });
         } else {
-            print(`/videos/browse/: unhandled action: ${a}`);
+            print(`/videos/${a}/: (${b}, ${c}) processing... unhandled action: ${a}`);
             res.end();
         }
     });
