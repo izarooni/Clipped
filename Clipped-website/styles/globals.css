@@ -58,22 +58,20 @@ form#login input {
     focus:bg-white/10;
 }
 
-#delete-video {
-    @apply p-2 text-end rounded relative
-     outline outline-1 outline-red-500 
+.hold-button {
+    @apply p-2 rounded relative
+     outline outline-1
      transition-all
      hover:outline-2;
 }
-#delete-video:after {
+.hold-button:after {
     @apply absolute w-full h-0 left-0 bottom-0 transition-all duration-1000;
-    content: '';
-    background: red;
+    content: "";
     z-index: -1;
-
 }
-#delete-video:active {
+.hold-button:active {
     @apply transform scale-x-105;
 }
-#delete-video:active:after {
+.hold-button:active:after {
     @apply h-full;
 }

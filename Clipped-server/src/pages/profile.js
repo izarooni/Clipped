@@ -11,18 +11,12 @@ const print = (s) => {
 function ProfileUpdate(req, res) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
 
-    const { type, value } = req.body;
-    if (!type || type.length < 1 || !value || value.length < 1) return error(res, 'invalid request type');
+    const { type, localUser } = req.body;
+    if (!type || type.length < 1 || !localUser || localUser.length < 1) return error(res, 'invalid request type');
 
-    const user = User.fromObject(value);
-    if (!user.ID) return error(res, 'please specify identification.');
+    const user = User.fromObject(localUser);
+    if (!user.ID) return error(res, 'please specify an ID');
     print(`/profile/update/${type}/: update for user ${user.username} (${user.ID})`);
-
-    const quit = (session, res) => {
-        console.log();
-        session.close();
-        res.end();
-    };
 
     getConnection().then((session) => {
         const users = session.getDefaultSchema().getTable('users');
@@ -30,14 +24,19 @@ function ProfileUpdate(req, res) {
         switch (type) {
             case 'name':
                 if (user.displayName.length < 3) {
-                    session.close();
-                    return error(res, 'Name is too short.');
+                    if (!user.displayName.length) {
+                        // replace with original name when none is provided
+                        user.displayName = user.username;
+                    } else {
+                        session.close();
+                        return error(res, 'Name is too short.');
+                    }
                 }
                 users.update().set('display_name', user.displayName)
                     .where('id = ' + user.ID).execute().then((rs) => {
-                        print(`profile/update/${type}/: display name updated for ${user.ID}`);
-                        res.write(JSON.stringify({ 'success': 'Display name updated' }));
-                        quit(session, res);
+                        print(`profile/update/${type}/: user ${user.ID} updated`);
+                        res.end(JSON.stringify({ 'success': 'Setting saved' }));
+                        session.close();
                     });
                 break;
             case 'avatar': {
@@ -48,9 +47,9 @@ function ProfileUpdate(req, res) {
 
                 users.update().set('avatar', user.avatar)
                     .where('id = ' + user.ID).execute().then((rs) => {
-                        print(`profile/update/${type}/: avatar updated for ${user.ID}`);
-                        res.write(JSON.stringify({ 'message': 'Avatar updated ' }))
-                        quit(session, res);
+                        print(`profile/update/${type}/: user ${user.ID} avatar updated`);
+                        res.end(JSON.stringify({ 'message': 'Avatar updated ' }))
+                        session.close();
                     });
                 break;
             }

@@ -33,15 +33,16 @@ function LoginHandler(req, res) {
                 } else {
                     bcrypt.compare(password, user.password, (err, passwordMatch) => {
                         const tokenMatch = (loginToken && user.loginToken == loginToken);
-                        if (tokenMatch || passwordMatch) {
+                        if ((!password && tokenMatch) || (password && passwordMatch)) {
                             print(`/login/: account ${user.username} found... auth success`);
 
-                            // don't send avatar, may have too much data
-                            // don't send password, unnecessary private information
+                            // unncessary data
+                            // don't send avatar, too much data
+                            // don't send password, private information
                             delete user.avatar;
                             delete user.password;
 
-                            if (passwordMatch) {
+                            if (!tokenMatch && passwordMatch) {
                                 // update the user token when a new session is created
                                 user.loginToken = nanoid();
                                 session.sql('update users set login_token = ?, updated_at = current_timestamp where id = ?')
@@ -52,7 +53,8 @@ function LoginHandler(req, res) {
                             res.end(JSON.stringify(user));
                         } else {
                             print(`/login/: account ${user.username} found... incorrect password`);
-                            print(`/login/: \t password:${password}, r_token:${loginToken}, s_token:${user.loginToken}`);
+                            // print(`/login/: \t password:${password}, r_token:${loginToken}, s_token:${user.loginToken}`);
+
                             error(res, 'Authentication faled');
                             session.close();
                         }

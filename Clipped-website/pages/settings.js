@@ -1,20 +1,46 @@
 import { useRef, useEffect, useState } from 'react';
-import Alert from '/components/alert';
 import * as User from '/lib/models/user';
+import Alert from '/components/alert';
+import Navbar from '/components/navbar';
 
 export default function Settings({ user }) {
-    const iDisplayName = useRef(null);
+    const displayNameEl = useRef(null);
+    const newPasswordEl = useRef(null);
+    const passwordEl = useRef(null);
+    const overlayEl = useRef(null);
+    const [success, setSuccess] = useState('');
     const [error, setError] = useState('');
     const [displayName, setDisplayName] = useState(user.displayName);
 
-    const onResetProfile = (e) => {
-        setDisplayName(user.displayName);
-        iDisplayName.current.value = '';
-    };
-    const onSaveProfile = (e) => {
-        setError('');
+    const onLogin = (e) => {
+        setError(''); setSuccess('');
+        if (e && e.which && e.which != 13) return; // Enter
 
-        user.displayName = iDisplayName.current.value;
+        let local = User.fromObject({
+            username: user.username,
+            password: passwordEl.current.value,
+            loginToken: user.loginToken,
+        });
+
+        if (!local) return;
+        local = JSON.stringify(local);
+        User.verifyUser(local).then(rs => {
+            if (!rs) setError('Unknown error');
+            else if (rs.error) setError(rs.error);
+            else if (rs.loginToken == user.loginToken) {
+                overlayEl.current.classList.add('hidden');
+                setSuccess('Login successful');
+            } else setError('Incorrect password');
+        }).catch(e => setError(`${e}`));
+    };
+    var saveTimestamp;
+    const onSaveDown = (e) => saveTimestamp = Date.now();
+    const onSaveUp = (e) => {
+        setError(''); setSuccess('');
+
+        if (Date.now() - saveTimestamp < 1000) return setError('Hold the save button longer...');
+
+        user.displayName = displayNameEl.current.value;
         document.cookie = `user=${JSON.stringify(user)};path=/;Max-Age=86400000`;
 
         fetch(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/profile/update`, {
@@ -26,33 +52,63 @@ export default function Settings({ user }) {
             },
             body: JSON.stringify({
                 type: 'name',
-                value: user,
+                localUser: user,
             })
         })
             .then(rs => rs.json())
             .then(rs => {
                 if (rs.error) setError(rs.error);
+                else if (rs.success) setSuccess(rs.success);
             })
             .catch(e => {
                 setError(`Failed to update avatar: ${e}`);
             });
     };
 
+    useEffect(() => {
+        onLogin();
+    }, [])
+
     return (
-        <>
-            <div className="container mx-auto">
-                <Alert className={'fixed top-24 right-6'} message={error} dismiss={(e) => setError('')} />
+        <div className="flex">
+            <Navbar />
 
-                <div className="flex flex-col space-y-4 rounded p-3 pb-12">
-                    <div className="flex items-center space-x-4">
-                        <button onClick={onResetProfile} className="fa-solid fa-ban  text-xl py-2 px-4 rounded outline outline-1 outline-white/10 transition-all hover:outline-0 hover:bg-white/20 active:bg-white/10 hover:cursor-pointer" type="button"></button>
-                        <button onClick={onSaveProfile} className="fa-regular fa-floppy-disk text-xl py-2 px-4 rounded outline outline-1 outline-white/10 transition-all hover:outline-0 hover:bg-white/20 active:bg-white/10 hover:cursor-pointer" type="button"></button>
-                    </div>
-
-                    <input ref={iDisplayName} placeholder={displayName} className="bg-transparent focus:outline-none p-1 rounded border border-white/10 py-2 px-4" type="text" />
+            <div ref={overlayEl} className="fixed h-screen w-screen bg-black/80 flex items-center justify-center flex-col">
+                <p className="text-4xl p-12 font-mono text-white/60">Enter Password</p>
+                <div className="flex items-baseline space-x-4 text-xl">
+                    <input onKeyPress={onLogin} ref={passwordEl} type="password" className="
+                    p-1 bg-transparent outline-none
+                    border-b border-b-white/80" />
+                    <i onClick={onLogin} className="fa-solid fa-door-closed p-2 cursor-pointer"></i>
                 </div>
             </div>
-        </>
+
+            <div className="container mx-auto p-3">
+                <Alert type={'success'} className={'fixed top-24 right-6'} message={success} dismiss={(e) => setSuccess('')} />
+                <Alert className={'fixed top-24 right-6'} message={error} dismiss={(e) => setError('')} />
+
+
+                <div className="flex flex-col space-y-4 whitespace-nowrap">
+                    <button onMouseDown={onSaveDown} onMouseUp={onSaveUp} className="text-xl py-2 px-4 hold-button outline-green-500/50 after:bg-green-600" type="button">
+                        <i className="fa-regular fa-floppy-disk mr-4"></i>
+                        <span>Save Changes</span>
+                    </button>
+
+                    <div className="flex items-center">
+                        <label className="pr-16">Display Name</label>
+                        <input ref={displayNameEl} placeholder={displayName} className="flex-grow bg-transparent focus:outline-none p-1 rounded border border-white/10 py-2 px-4" type="text" />
+                    </div>
+
+                    <div className="flex items-center">
+                        <label className="pr-16">New Password</label>
+                        <div className="flex flex-col w-full">
+                            <input ref={newPasswordEl} className="flex-grow bg-transparent focus:outline-none p-1 rounded border border-white/10 py-2 px-4" type="password" />
+                            <small className="italic text-white/60">Leave blank to ignore</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 }
 

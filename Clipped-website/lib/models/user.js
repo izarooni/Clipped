@@ -38,7 +38,6 @@ export function fromCookie(a) {
         let local = JSON.parse(`[${a}]`)[0];
         return fromObject(local);
     } catch (e) {
-
         console.log(`[user.js] ${e}`, a);
         return null;
     }

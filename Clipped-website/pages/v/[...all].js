@@ -116,7 +116,7 @@ export default function Video({ video, owner, user }) {
 
                 <div className="p-5 container mx-auto">
 
-                    <video className="w-full mx-auto" controls>
+                    <video className="w-full mx-auto" controls playsInline>
                         <source src={`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/${video.ID}#t=0.001`} type="video/mp4" />
                     </video>
 
@@ -191,7 +191,7 @@ export default function Video({ video, owner, user }) {
                                 <textarea ref={description} className="flex-grow rounded p-1 bg-transparent outline outline-1 outline-white/40 hover:outline-white/60" type="text" />
 
                                 <div className="text-end">
-                                    <button onMouseDown={onDeleteDown} onMouseUp={onDeleteUp} id="delete-video" type="button">Delete Video</button>
+                                    <button onMouseDown={onDeleteDown} onMouseUp={onDeleteUp} className="hold-button outline-red-500 after:bg-red-600" type="button">Delete Video</button>
                                 </div>
                             </div>
                         </>}

@@ -72,7 +72,6 @@ export function VideoDetails(req, res) {
                 res.end();
 
                 print(`/video/details/: found video ${ID}`);
-                console.log();
             });
     });
 }
@@ -214,7 +213,6 @@ export function VideoSearch(req, res) {
                     print(`/videos/browse/${b}/: sent ${rows.length} videos, limit ${batchCount} offset ${start}`);
                     res.end(JSON.stringify(videos));
                     session.close();
-                    console.log();
                 });
             });
         } else if (a == 'user') {
@@ -236,7 +234,6 @@ export function VideoSearch(req, res) {
                 print(`/videos/user/${b}/: sent ${rows.length} videos, limit ${batchCount} offset ${start}`);
                 res.end(JSON.stringify(videos));
                 session.close();
-                console.log();
             });
         } else if (a == 'private') {
 
@@ -254,7 +251,6 @@ export function VideoSearch(req, res) {
                 print(`/videos/private/${b}/: sent ${rows.length} videos`);
                 res.end(JSON.stringify(videos));
                 session.close();
-                console.log();
             });
         } else {
             print(`/videos/browse/: unhandled action: ${a}`);
