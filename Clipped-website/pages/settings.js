@@ -57,14 +57,12 @@ export default function Settings({ user }) {
 }
 
 export async function getServerSideProps({ req, res, params }) {
-    let localUser = User.fromCookie(req.cookies.user);
-    const local = !localUser ? null : await User.getUser(localUser.ID);
-
-    if (!local || local && local.error) return redirect('/logout');
+    const user = await User.verifyUser(req.cookies.user);
+    if (user.error) return redirect('/logout');
 
     return {
         props: {
-            user: local
+            user: user
         }
     };
 }

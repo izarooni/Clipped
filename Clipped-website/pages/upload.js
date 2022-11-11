@@ -21,7 +21,8 @@ export default function Upload({ user }) {
         event.preventDefault();
 
         const files = [...event.dataTransfer.files];
-        if (files.length != 1) return setError('Only upload 1 file');
+        if (files.length > 1) return setError('Only upload 1 file');
+        else if (files.length < 1) return setError('Requires at least 1 file');
         const file = files[0];
 
         if (file.type == 'video/mp4') {
@@ -76,7 +77,7 @@ export default function Upload({ user }) {
                 <Alert type={'success'} className={'fixed top-24 right-6'} message={success} dismiss={(e) => setSuccess('')} />
                 <Alert className={'fixed top-24 right-6'} message={error} dismiss={(e) => setError('')} />
 
-                <form class="hidden" ref={uploadForm} encType="multipart/form-data"></form>
+                <form className="hidden" ref={uploadForm} encType="multipart/form-data"></form>
 
                 <div onDrop={onVideoUpload} className="p-24 rounded border border-white/10 bg-zinc-800/20 mb-4 text-center space-x-2 text-2xl text-white/25">
                     <i className="fa-solid fa-file-video"></i>
@@ -93,14 +94,14 @@ export default function Upload({ user }) {
 }
 
 export async function getServerSideProps({ req, res, params }) {
-    let localUser = User.fromCookie(req.cookies.user);
-    const local = !localUser ? null : await User.getUser(localUser.ID);
+    const redirect = (path) => { return { redirect: { permanent: false, destination: path } } };
 
-    if (!local || local && local.error) return redirect('/logout');
+    const user = await User.verifyUser(req.cookies.user);
+    if (user.error) return redirect('/logout');
 
     return {
         props: {
-            user: local
+            user: user
         }
     };
 }

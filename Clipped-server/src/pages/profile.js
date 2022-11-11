@@ -64,64 +64,61 @@ function ProfileUpdate(req, res) {
 function ProfilePage(req, res) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
 
-    const url = req.url[0] == '/' ? req.url.substring(1) : req.url;
-    const sp = url.split('/').splice(1);
-    const userID = sp[0];
-
-    if (!userID) return error(res, 'please specify an identification.');
+    const { ID } = req.params;
+    if (!ID) return error(res, 'Must specify an ID.');
 
     getConnection().then((session) => {
-        let s = isNaN(parseInt(userID))
-            ? `select * from users where username like '${sanitize(userID)}' limit 1`
-            : `select * from users where id = ${sanitize(userID).replace(/[^0-9]/g, '')} limit 1`;
+        let s = isNaN(parseInt(ID))
+            ? `select * from users where username like ? limit 1`
+            : `select * from users where id = ? limit 1`;
 
-        session.sql(s).execute().then((rs) => {
-            let row = rs.fetchOne();
-            if (row) {
-                const user = User.fromArray(row);
+        session
+            .sql(s).bind(ID)
+            .execute().then((rs) => {
+                let row = rs.fetchOne();
+                if (row) {
+                    const user = User.fromArray(row);
 
-                // unnescssary or sensitive information
-                delete user.webAdmin;
-                delete user.password;
-                delete user.avatar;
-                delete user.loginToken;
+                    // unnescssary or sensitive information
+                    delete user.webAdmin;
+                    delete user.password;
+                    delete user.avatar;
+                    delete user.loginToken;
 
-                res.end(JSON.stringify(user));
-            } else error(res, `failed to find any user named  ${userID}.`);
+                    res.end(JSON.stringify(user));
+                } else error(res, `failed to find any user named  ${ID}.`);
 
-            session.close();
-            print(`profile/: looking up user ${userID}... ${row ? 'found!' : 'not found'}`);
-        })
+                session.close();
+                print(`profile/: looking up user ${ID}... ${row ? 'found!' : 'not found'}`);
+            })
     });
 }
 
 function ProfileAvatarPage(req, res) {
-    const url = req.url[0] == '/' ? req.url.substring(1) : req.url;
-    const sp = url.split('/').splice(1);
-    const userID = parseInt(sp[1]);
-    if (!userID || isNaN(userID)) return error(res, 'must specify user');
+    res.set('Content-Type', 'image/jpeg');
 
-    // print(`profile/avatar/: requested user avatar`, userID);
+    const sendDefaultAvatar = (res) => res.end(fs.readFileSync("bin/avatar/_.jpg"));
+
+    const { ID } = req.params;
+    if (!ID) return sendDefaultAvatar(res);
 
     getConnection().then((session) => {
         session
             .sql('select * from users where id = ?')
-            .bind(userID)
+            .bind(ID)
             .execute()
             .then(rs => {
-                let user = User.fromArray(rs.fetchOne());
-                let filePath = "bin/avatar/_.jpg";
-                if (!user) {
-                    res.set('Content-Type', 'image/jpeg');
-                    res.write(fs.readFileSync(filePath));
-                    res.end();
-                    console.log();
-                    return;
+                session.close();
+                let row = rs.fetchOne();
+                let user = null;
+
+                if (!row || !(user = User.fromArray(row))) {
+                    return sendDefaultAvatar(res);
                 }
 
-                filePath = `bin/avatar/${user.ID}.jpeg`;
-                // save the avatar so there's less processing overhead
+                const filePath = `bin/avatar/${user.ID}.jpeg`;
                 if (!fs.existsSync(filePath)) {
+                    // save the avatar so there's less processing overhead
                     if (user.avatar) {
                         let base64 = user.avatar.split('base64,')[1];
                         let buffer = Buffer.from(base64, 'base64');
@@ -133,12 +130,10 @@ function ProfileAvatarPage(req, res) {
                             fs.writeFileSync(filePath, buffer);
                         });
                     }
-                    console.log(`[profile.js] profile/avatar/: cached user ${user.ID} avatar into jpeg`);
+                    print(`/profile/avatar/: cached user ${user.ID} avatar into jpeg`);
                 } else {
-                    res.set('Content-Type', 'image/jpeg');
                     res.write(fs.readFileSync(filePath));
                     res.end();
-                    console.log();
                 }
             });
     });

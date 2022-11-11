@@ -1,13 +1,14 @@
-import { useState, useRef, useEffect } from 'react'
-
-import * as Time from '/lib/time'
+import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import * as Time from '/lib/time';
 import * as User from '/lib/models/user';
 
 import Avatar from '/components/avatar';
 import Alert from '/components/alert';
-import Navbar from '/components/navbar'
+import Navbar from '/components/navbar';
 
-export default function Video({ video, owner, local }) {
+export default function Video({ video, owner, user }) {
+    const Router = useRouter();
     const title = useRef(null);
     const description = useRef(null);
 
@@ -23,8 +24,7 @@ export default function Video({ video, owner, local }) {
         if (res.success) setSuccess(res.success);
         if (res.error) setError(res.error);
     };
-    const sendUpdateVideo = async (action)  => {
-        console.log(local);
+    const sendUpdateVideo = async (action) => {
         return fetch(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/details`, {
             method: 'POST',
             mode: 'cors',
@@ -33,8 +33,13 @@ export default function Video({ video, owner, local }) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
+                // public: no user required
+                // private: user auth required
                 'action': action,
-                'user': local,
+                // optional: depends on <action>
+                'user': user,
+                // the video object, typically containing limited data
+                // this fetch will retrieve the rest of the data
                 'video': video,
             }),
         }).then(res => res.json());
@@ -44,21 +49,22 @@ export default function Video({ video, owner, local }) {
 
     const onSubmitLike = (e) => {
         setError(''); setSuccess('');
-        sendUpdateVideo('private').then(res => {
+        setLikes(video.likes += 1);
+        sendUpdateVideo('public').then(res => {
             if (res.error) setError(res.error);
-            else setLikes(video.likes += 1);
         });
     };
     const onSubmitDislike = (e) => {
         setError(''); setSuccess('');
-        sendUpdateVideo('private').then(res => {
+        setDislikes(video.dislikes += 1);
+        sendUpdateVideo('public').then(res => {
             if (res.error) setError(res.error);
-            else setDislikes(video.dislikes += 1);
         });
     };
 
     const onSetVideoPrivate = (e) => {
         setError(''); setSuccess('');
+        if (!user) return;
         video.private = 0;
         sendUpdateVideo('private').then(onMsgResult);
     };
@@ -77,6 +83,21 @@ export default function Video({ video, owner, local }) {
         video.displayName = sTitle;
         video.description = sDescription;
         sendUpdateVideo('private').then(onMsgResult);
+    };
+
+    var deleteTimestamp;
+    const onDeleteDown = () => deleteTimestamp = Date.now();
+    const onDeleteUp = () => {
+        setError(''); setSuccess('');
+        let elapsed = Date.now() - deleteTimestamp;
+        if (elapsed < 1000) return setError('Hold the delete button longer...');
+        video.delete = true;
+        sendUpdateVideo('private').then(res => {
+            onMsgResult(res);
+            setTimeout(() => {
+                Router.back();
+            }, 1200);
+        });
     };
 
     const onShowSettings = (e) => setEditable(!editable);
@@ -139,12 +160,13 @@ export default function Video({ video, owner, local }) {
                                     // show the private icon when private
                                     ? <i onClick={onSetVideoPrivate} className="fa-solid fa-lock py-3 px-4 rounded outline outline-1 outline-white/10 transition-all hover:outline-0 hover:bg-white/20 active:bg-white/10 cursor-pointer"></i>
                                     // show 'open' icon only if the current user session also owns the video
-                                    : (!local || local.ID != owner.ID) ? '' :
+                                    : (!user || user.ID != owner.ID) ? '' :
                                         <i onClick={onSetVideoPublic} className="fa-solid fa-lock-open py-3 px-4 rounded outline outline-1 outline-white/10 transition-all hover:outline-0 hover:bg-white/20 active:bg-white/10 cursor-pointer"></i>
 
                             })()}
                             {(() => {
-                                // if (!(local && local.ID == owner.ID)) return;
+                                if (!user || user.ID != video.ownerID) return;
+
                                 if (editable) {
                                     return (
                                         <>
@@ -162,20 +184,23 @@ export default function Video({ video, owner, local }) {
                     {!editable ? '' :
                         <>
                             <div className="p-4 grid gap-4">
-
                                 <label className="-mb-2 text-sm">Title</label>
                                 <input ref={title} className="flex-grow rounded p-1 bg-transparent outline outline-1 outline-white/40 hover:outline-white/60" type="text" placeholder={video.displayName} />
 
                                 <label className="-mb-2 txt-sm">Description</label>
                                 <textarea ref={description} className="flex-grow rounded p-1 bg-transparent outline outline-1 outline-white/40 hover:outline-white/60" type="text" />
+
+                                <div className="text-end">
+                                    <button onMouseDown={onDeleteDown} onMouseUp={onDeleteUp} id="delete-video" type="button">Delete Video</button>
+                                </div>
                             </div>
                         </>}
 
                     <div className="space-y-6 border-t border-t-white/10">
-                        {!local ? '' :
+                        {!user ? '' :
                             <div className="w-full space-y-2 py-6">
                                 <div className="flex w-full">
-                                    <Avatar user={local.ID} className="w-12 mr-4" />
+                                    <Avatar user={user.ID} className="w-12 mr-4" />
                                     <textarea className="bg-transparent p-2 rounded border border-white/10 w-full resize-none focus:outline-none" placeholder="Add a comment..."></textarea>
                                 </div>
                                 <div className="w-full text-end">
@@ -200,16 +225,15 @@ export async function getServerSideProps({ req, params }) {
     });
 
     const video = await res.json();
-    const owner = await User.getUser(video.ownerID);
-
-    let localUser = User.fromCookie(req.cookies.user);
-    const local = !localUser ? null : await User.getUser(localUser.ID);
+    const owner = await User.getProfile(video.ownerID);
+    let user = await User.verifyUser(req.cookies.user);
+    if (user.error) user = null;
 
     return {
         props: {
             video,
             owner,
-            local,
+            user,
         }
     };
 }

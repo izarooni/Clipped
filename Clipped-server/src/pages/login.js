@@ -1,3 +1,5 @@
+import { nanoid } from 'nanoid';
+import { error } from '../utils.js';
 import * as bcrypt from 'bcrypt';
 import * as User from '../models/user.js';
 import * as Database from '../database.js';
@@ -8,13 +10,13 @@ function LoginHandler(req, res) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
 
     const { username, password, loginToken } = req.body;
+    // console.log(username, password, loginToken);
 
-    if (!username || !username.match(/^[a-zA-Z0-9-_]{3,13}$/g)
-        || !loginToken && !password || (password && password.length < 3)) {
-        print('login/: invalid credentials');
-        res.end(JSON.stringify({ 'error': `Invalid credentials`, 'errorCode': 1 }));
-        console.log();
-        return;
+    if (!username || (!password && !loginToken)) return error(res, 'Must enter credentials');
+
+    if (!username.match(/^[a-zA-Z0-9-_]{3,13}$/)) {
+        print('/login/: invalid credentials');
+        return error(res, 'Please enter a username and password');
     }
 
     Database.getConnection().then((session) => {
@@ -26,38 +28,38 @@ function LoginHandler(req, res) {
                 let user = rs.fetchOne();
 
                 if (!user || !(user = User.fromArray(user))) {
-                    print('login/: account not found', username);
-                    res.end(JSON.stringify({ 'error': 'The account could not be found.', 'errorCode': 3 }));
+                    print(`/login/: account ${username} not found`);
+                    return error(res, `The account doesn't exist`);
                 } else {
-                    print('login/: account found, testing credentials');
+                    bcrypt.compare(password, user.password, (err, passwordMatch) => {
+                        const tokenMatch = (loginToken && user.loginToken == loginToken);
+                        if (tokenMatch || passwordMatch) {
+                            print(`/login/: account ${user.username} found... auth success`);
 
-                    bcrypt.compare(password, user.password, (err, result) => {
-                        if (user.loginToken == loginToken || result) {
-                            print('login/: auth success');
+                            // don't send avatar, may have too much data
+                            // don't send password, unnecessary private information
+                            delete user.avatar;
+                            delete user.password;
 
-                            // don't send avatar which may have too much data
-                            // don't send password
-                            user.avatar = user.password = undefined;
-                            res.end(JSON.stringify(user));
-
-                            // update stored loginToken to the one just used
-                            if (loginToken && user.loginToken != loginToken) {
-                                session.sql('update users set login_token = ? where id = ?').bind(loginToken, user.ID).execute();
-                                session.close();
+                            if (passwordMatch) {
+                                // update the user token when a new session is created
+                                user.loginToken = nanoid();
+                                session.sql('update users set login_token = ?, updated_at = current_timestamp where id = ?')
+                                    .bind(user.loginToken, user.ID).execute()
+                                    .then(() => session.close());
                             } else session.close();
+
+                            res.end(JSON.stringify(user));
                         } else {
-                            print(`login/: incorrect password: ${err}. ${password}_${user.password}`);
-                            res.end(JSON.stringify({ 'error': `Invalid credentials`, 'errorCode': 2 }));
+                            print(`/login/: account ${user.username} found... incorrect password`);
+                            print(`/login/: \t password:${password}, r_token:${loginToken}, s_token:${user.loginToken}`);
+                            error(res, 'Authentication faled');
                             session.close();
                         }
                     });
                 }
-
-                console.log();
             });
     });
-
-    console.log();
 }
 
 export default LoginHandler;

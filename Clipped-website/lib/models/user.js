@@ -1,4 +1,4 @@
-export async function getUser(ID) {
+export async function getProfile(ID) {
     const f = await fetch(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/profile/${ID}`, {
         method: 'POST',
         mode: 'cors',
@@ -10,7 +10,10 @@ export async function getUser(ID) {
     return f.json();
 }
 
-export async function fromDatabase(a) {
+export async function verifyUser(cookie) {
+    let user = fromCookie(cookie);
+    if (!user) return null;
+
     const f = await fetch(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/login`, {
         method: 'POST',
         mode: 'cors',
@@ -18,9 +21,12 @@ export async function fromDatabase(a) {
         'headers': {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(a)
+        body: JSON.stringify(user)
     });
-    return f.json();
+    const res = f.json();
+    if (!res) throw new Error('No response');
+    if (res.error) throw new Error(res.error);
+    return res;
 }
 
 export function fromCookie(a) {

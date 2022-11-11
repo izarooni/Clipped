@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react'
-import { nanoid } from 'nanoid'
+import React, { useState, useRef } from 'react';
+import { nanoid } from 'nanoid';
 
-import Navbar from '/components/navbar'
-import Alert from '/components/alert'
+import Navbar from '/components/navbar';
+import Alert from '/components/alert';
 
 export default function Register({ menu, server }) {
     const [error, setError] = useState('');
@@ -105,10 +105,9 @@ export default function Register({ menu, server }) {
     );
 }
 
-export async function getServerSideProps({ req, res }) {
+export async function getServerSideProps() {
     return {
         props: {
-            menu: {},
             server: process.env.NEXT_PUBLIC_STREAM_SERVER,
         }
     };

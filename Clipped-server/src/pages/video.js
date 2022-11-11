@@ -1,9 +1,9 @@
 import { sanitize, getConnection } from '../database.js';
 import { error } from '../utils.js';
-import { nanoid } from 'nanoid';
 
 import fs from 'fs';
 import path from 'path';
+import trash from 'trash';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegPath from 'ffmpeg-static';
 
@@ -23,12 +23,12 @@ export function VideoUpload(req, res) {
     const details = JSON.parse(req.body.file_details);
 
     if (!user.ID) {
-        print('video/upload/: invalid user; upload failed');
-        return error(res, 'invalid user session.');
+        print('/video/upload/: invalid user; upload failed');
+        return error(res, 'Invalid session');
     }
     if (!req.file) {
-        print('video/upload/: invalid file; upload failed');
-        return error(res, 'no file provided.');
+        print('/video/upload/: invalid file; upload failed');
+        return error(res, 'No file provided');
     }
 
     print(`/video/upload/: video upload request by ${user.username} (${user.ID})`);
@@ -41,11 +41,11 @@ export function VideoUpload(req, res) {
         let rs = await session
             .sql('insert into videos (owner_id, display_name, file_name, file_path) values (?, ?, ?, ?)')
             .bind(user.ID, details.name, fileName, filePath).execute();
-        let id = rs.getAutoIncrementValue();
-        if (id) {
+        let ID = rs.getAutoIncrementValue();
+        if (ID) {
             fs.writeFileSync(filePath, req.file.buffer);
             res.write(JSON.stringify({ 'success': 'Video uploaded' }));
-            print(`/video/upload/: video /v/${id} uploaded`)
+            print(`/video/upload/: video /v/${ID} uploaded`)
         } else error(res, 'Upload failed due to unknown reason.');
 
         session.close();
@@ -57,9 +57,7 @@ export function VideoUpload(req, res) {
 export function VideoDetails(req, res) {
     res.writeHead(200, { 'Content-Type': 'text/json' });
 
-    const url = req.url[0] == '/' ? req.url.substring(1) : req.url;
-    const sp = url.split('/').splice(1);
-    const ID = sp[1];
+    const { ID } = req.params;
 
     getConnection().then((session) => {
         session.sql('select * from videos where id = ?')
@@ -83,37 +81,45 @@ export function VideoUpdate(req, res) {
     res.writeHead(200, { 'Content-Type': 'text/json' });
 
     const { action, user, video } = req.body;
-
     if (!video) return error(res, 'must provide a video object');
 
     getConnection().then(async (session) => {
         if (action == 'private') {
 
             if (!user) return error(res, 'must be authenticated');
-            else if (user.ID != video.ownerID) return error(res, 'incorrect credentials');
+            else if (user.ID != video.ownerID) return error(res, `can't modify a video owned by another person`);
 
             let rs = await session.sql(`select * from users where id = ${user.ID} limit 1`).execute();
             let row = rs.fetchOne();
-            if (!row) return error(res, 'invalid session (1)');
+            if (!row) return error(res, 'user not found');
 
             const remote = User.fromArray(row);
-            console.log(remote.loginToken, user.loginToken)
-            if (remote.loginToken != user.loginToken) return error(res, 'invalid session (2)');
+            if (remote.loginToken != user.loginToken) return error(res, 'user not authenticated');
         }
 
-        await session
-            .sql('update videos set display_name = ?, description = ?, private = ?, likes = ?, dislikes = ? where id = ?')
-            .bind(video.displayName, video.description, video.private, video.likes, video.dislikes, video.ID).execute();
-        res.end(JSON.stringify({ 'success': 'Video updated successfully' }));
+        if (video.delete) {
+            if (fs.existsSync(video.filePath)) {
+                await session.sql('delete from videos where id = ?').bind(video.ID).execute();
+                await trash(video.filePath);
+                res.end(JSON.stringify({ 'success': 'Video deleted permanently' }));
+                print(`/video/update/: video deleted ${video.ID}`);
+            } else {
+                error(res, 'video file not found');
+            }
+        } else {
+            await session
+                .sql('update videos set display_name = ?, description = ?, private = ?, likes = ?, dislikes = ? where id = ?')
+                .bind(video.displayName, video.description, video.private, video.likes, video.dislikes, video.ID).execute();
+            res.end(JSON.stringify({ 'success': 'Video updated successfully' }));
+            print(`/video/update/: updated video ${video.ID}`);
+        }
         session.close();
-        print(`/video/update/: updated video ${video.ID}`);
     });
 }
 
 export function VideoStream(req, res) {
-    const url = req.url[0] == '/' ? req.url.substring(1) : req.url;
-    const sp = url.split('/').splice(1);
-    const ID = sp[0];
+
+    const { ID } = req.params;
 
     getConnection().then((session) => {
         session.sql('update videos set views = views + 1 where id = ?').bind(ID).execute();
@@ -241,7 +247,7 @@ export function VideoSearch(req, res) {
                 let videos = [...rows].map(Video.fromArray);
                 if (rows.length == 0) {
                     if (search) error(res, 'No videos found');
-                    else error(res, 'Reached server limit');
+                    else error(res, 'No videos available');
                     return session.close();
                 }
 
