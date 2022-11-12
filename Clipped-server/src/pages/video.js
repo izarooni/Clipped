@@ -347,25 +347,33 @@ export function VideoSearch(req, res) {
 }
 
 export function VideoPreview(req, res) {
+    const { ID } = req.params;
+    const { type } = req.query;
+
+    const filePathNoExt = `bin/preview/${ID}`;
+    if (type == 'image') {
+        res.writeHead(200, {
+            'Content-Type': 'image/jpeg',
+            'Cache-Control': 'public, max-age=30, no-cache'
+        });
+        return res.end(fs.readFileSync(`${filePathNoExt}.jpg`));
+    }
+
     // serve existing file
-    // change max-age on production
+    // todo change max-age on production
     res.writeHead(200, {
         'Content-Type': 'video/webm',
         'Cache-Control': 'public, max-age=30, no-cache'
     });
 
-    const url = req.url[0] == '/' ? req.url.substring(1) : req.url;
-    const sp = url.split('/').splice(1);
-    const ID = sp[1];
-
-    const filePath = `bin/preview/${ID}.webm`;
+    const filePath = `${filePathNoExt}.webm`;
     const getVideo = (callback) => {
         fs.readFile(filePath, (error, content) => {
             callback(content);
         });
     };
 
-    if (CACHE[filePath] = false) {
+    if (CACHE[filePath]) {
         if (fs.existsSync(filePath)) {
             // print(`Fast-served existing preview for video ${ID}`);
             getVideo((c) => {
