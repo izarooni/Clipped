@@ -33,7 +33,7 @@ export async function initialize(session) {
             login_token text default null,
             created_at timestamp not null default current_timestamp,
             updated_at timestamp default null,
-            avatar text default null,
+            avatar longtext default null,
             primary key (id), 
             unique (username)
         )`).execute();
