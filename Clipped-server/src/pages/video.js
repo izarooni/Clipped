@@ -352,11 +352,15 @@ export function VideoPreview(req, res) {
 
     const filePathNoExt = `bin/preview/${ID}`;
     if (type == 'image') {
-        res.writeHead(200, {
-            'Content-Type': 'image/jpeg',
-            'Cache-Control': 'public, max-age=30, no-cache'
-        });
-        return res.end(fs.readFileSync(`${filePathNoExt}.jpg`));
+        let imageFile = `${filePathNoExt}.jpg`;
+        if (fs.existsSync(imageFile)) {
+            res.writeHead(200, {
+                'Content-Type': 'image/jpeg',
+                'Cache-Control': 'public, max-age=30, no-cache'
+            });
+            return res.end(fs.readFileSync(imageFile));
+        }
+        return res.writeHead(404, 'Image not found');
     }
 
     // serve existing file
