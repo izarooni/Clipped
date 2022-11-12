@@ -1,3 +1,4 @@
+import Image from 'next/link';
 import Link from 'next/link';
 
 export default function Avatar({ user, className }) {

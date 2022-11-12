@@ -15,7 +15,6 @@ export default function Upload({ user }) {
     const uploadForm = useRef(null);
     const videos = [];
 
-    const loadPrivateVideos = () => Video.fetchVideos(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/videos/private/${user.ID}`, onVideosReceived, onVideosError);
     const onMsgResult = (res) => {
         if (res.success) setSuccess(res.success);
         if (res.error) setError(res.error);
@@ -33,17 +32,6 @@ export default function Upload({ user }) {
         event.preventDefault();
         sendVideoUpload(event.dataTransfer.files);
     };
-    const onVideosReceived = (res) => {
-        onMsgResult(res);
-        for (let i = 0; i < res.length; i++) {
-            let video = Video.fromObject(res[i]);
-            if (!videos.find(v => video.ID == v.ID)) {
-                videos.push(video);
-            }
-        }
-        setRenders([...videos].map(video => <VideoPreview key={video.ID} video={video} />));
-    };
-    const onVideosError = (e) => setError(`Failed to load videos: ${e}`);
 
     const sendVideoUpload = (arr) => {
         setError(''); setSuccess('');
@@ -71,7 +59,9 @@ export default function Upload({ user }) {
                 .then(res => res.json())
                 .then((res) => {
                     onMsgResult(res);
-                    loadPrivateVideos();
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1200);
                 })
                 .catch(e => {
                     setError(`Failed to upload video: ${e}`);
@@ -79,7 +69,23 @@ export default function Upload({ user }) {
         } else setError('Only .mp4 files are allowed right now');
     }
 
-    useEffect(() => loadPrivateVideos(), []);
+    useEffect(() => {
+        const onVideosReceived = (res) => {
+            onMsgResult(res);
+            for (let i = 0; i < res.length; i++) {
+                let video = Video.fromObject(res[i]);
+                if (!videos.find(v => video.ID == v.ID)) {
+                    videos.push(video);
+                }
+            }
+            setRenders([...videos].map(video => <VideoPreview key={video.ID} video={video} />));
+        };
+        const onVideosError = (e) => setError(`Failed to load videos: ${e}`);
+        const loadPrivateVideos = () => Video.fetchVideos(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/videos/private/${user.ID}`, onVideosReceived, onVideosError);
+
+        loadPrivateVideos();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <>

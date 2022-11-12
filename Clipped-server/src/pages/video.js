@@ -267,38 +267,6 @@ export function VideoSearch(req, res) {
                 session.close();
                 print(`/videos/${a}/: (${b}, ${c}) processing... sent ${videos.length} videos, limit ${batchCount} offset ${start}`);
             });
-        } else if (a == 'browse') {
-            // cursor starting position
-            const start = Math.max(0, parseInt(c));
-
-            session.sql(
-                'select target_location from navbar where slug like ?'
-            ).bind(b).execute().then((rs) => {
-                let row = rs.fetchOne();
-                if (!row) {
-                    error(res, 'Bad location');
-                    return session.close();
-                }
-
-                session.sql(
-                    `select * from videos 
-                    where private = 0 and file_path like '%${row[0].replace(/\\/g, '%')}%' 
-                    and display_name like '%${search ? sanitize(search) : ''}%' 
-                    order by created_at limit ${batchCount} offset ${start}`
-                ).execute().then((rs) => {
-                    let rows = rs.fetchAll();
-                    let videos = [...rows].map(Video.fromArray);
-                    if (rows.length == 0) {
-                        if (search) error(res, 'No videos found');
-                        else error(res, 'Reached end of list');
-                        return session.close();
-                    }
-
-                    print(`/videos/${a}/: (${b}, ${c}) processing... sent ${rows.length} videos: limit ${batchCount} offset ${start}`);
-                    res.end(JSON.stringify(videos));
-                    session.close();
-                });
-            });
         } else if (a == 'user') {
             // cursor starting position
             const start = Math.max(0, parseInt(c));

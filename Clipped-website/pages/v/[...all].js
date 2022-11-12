@@ -153,7 +153,7 @@ export default function Video({ video, owner, user }) {
                 descriptionEl.current.classList.toggle('line-clamp-2');
             };
         }
-    }, [editable]);
+    }, [video, editable]);
 
     // initialize comments
     useEffect(() => loadComments(), [video]);

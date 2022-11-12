@@ -8,32 +8,31 @@ import VideoPreview from '/components/video-preview';
 export default function Home() {
     const [renders, setRenders] = useState([]);
     const [error, setError] = useState('');
-    const videos = [];
-
-    const onVideosReceived = (r) => {
-        if (r.error) {
-            setError(r.error);
-            return;
-        }
-        for (let i = 0; i < r.length; i++) {
-            let video = Video.fromObject(r[i]);
-            if (!videos.find(v => video.ID == v.ID)) {
-                videos.push(video);
-            }
-        }
-        setRenders([...videos].map(video => <VideoPreview key={video.ID} video={video} />));
-    };
-
-    const onVideosError = (e) => setError(`videos failed to load: ${e.message}`);
+    const videos = useRef([]);
 
     useEffect(() => {
         setError('');
+
+        const onVideosError = (e) => setError(`videos failed to load: ${e.message}`);
+        const onVideosReceived = (r) => {
+            if (r.error) {
+                setError(r.error);
+                return;
+            }
+            for (let i = 0; i < r.length; i++) {
+                let video = Video.fromObject(r[i]);
+                if (!videos.current.find(v => video.ID == v.ID)) {
+                    videos.current.push(video);
+                }
+            }
+            setRenders([...videos.current].map(video => <VideoPreview key={video.ID} video={video} />));
+        };
 
         window.onscroll = (e) => {
             const pb = Math.ceil(window.innerHeight + window.scrollY);
             const h = document.body.offsetHeight;
             if (pb < h) return;
-            Video.fetchVideos(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/videos/popular/${videos.length}`, onVideosReceived, onVideosError);
+            Video.fetchVideos(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/videos/popular/${videos.current.length}`, onVideosReceived, onVideosError);
         };
 
         Video.fetchVideos(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/videos/popular/0`, onVideosReceived, onVideosError);

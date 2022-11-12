@@ -5,7 +5,7 @@ import * as User from '/lib/models/user';
 import Avatar from '/components/avatar';
 
 export default function Comment({ onMsgResult, data }) {
-    let deleteTimestamp;
+    const deleteTimestamp = useRef(0);
     const commentEl = useRef(null);
     const messageEl = useRef(null);
     const replyButtonEl = useRef(null);
@@ -17,8 +17,6 @@ export default function Comment({ onMsgResult, data }) {
     const toggleSpoiler = (e) => {
         let clamp = messageEl.current.classList.toggle('line-clamp-4');
         e.target.innerHTML = clamp ? 'Read more' : 'Read less';
-    };
-    const toggleChildren = (e) => {
     };
 
     useEffect(() => {
@@ -39,11 +37,11 @@ export default function Comment({ onMsgResult, data }) {
 
         if (deleteButtonEl.current) {
             let el = deleteButtonEl.current;
-            el.onmousedown = (e) => deleteTimestamp = Date.now();
+            el.onmousedown = (e) => deleteTimestamp.current = Date.now();
             el.onmouseup = (e) => {
                 // empty the messages
                 onMsgResult({ 'error': '', 'success': '' });
-                if (Date.now() - deleteTimestamp < 1000) return onMsgResult({ 'error': 'Hold the delete button for longer...' });
+                if (Date.now() - deleteTimestamp.current < 1000) return onMsgResult({ 'error': 'Hold the delete button for longer...' });
 
                 fetch(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/comment/${data.videoID}`, {
                     method: 'POST',
@@ -71,7 +69,8 @@ export default function Comment({ onMsgResult, data }) {
                 contextMenuEl.current.classList.remove('hidden');
             }
         }
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [data]);
 
     return (
         <div key={data.ID} ref={commentEl} className="flex items-start space-x-3">

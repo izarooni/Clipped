@@ -25,7 +25,7 @@ export default function Profile({ user, target }) {
     const [friends, setFriends] = useState(false);
 
     // collection of videos uploaded by the target user
-    const videos = [];
+    const videos = useRef([]);
     // boolean: true if the profile page is the current user (the user that's logged-in)
     const self = user && user.ID == target.ID;
 
@@ -33,7 +33,6 @@ export default function Profile({ user, target }) {
         if (res.success) setSuccess(res.success);
         if (res.error) setError(res.error);
     };
-    const onVideosError = (event) => setError(`${event.message}`);
     const onUserLiked = (event) => {
         setError(''); setSuccess('');
         fetch(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/profile/friend/${target.ID}`, {
@@ -98,19 +97,6 @@ export default function Profile({ user, target }) {
                 });
         });
     };
-    const onVideosLoaded = (res) => {
-        if (res.error) {
-            setError(res.error);
-            return;
-        }
-        for (let i = 0; i < res.length; i++) {
-            let video = Video.fromObject(res[i]);
-            if (!videos.find(v => video.ID == v.ID)) {
-                videos.push(video);
-            }
-        }
-        setRenders([...videos].map(video => <VideoPreview key={video.ID} avatar={false} video={video} />));
-    };
 
     useEffect(() => {
         if (localStorage.friends) {
@@ -118,11 +104,26 @@ export default function Profile({ user, target }) {
             setFriends(friends.filter(f => f.ID == target.ID).length > 0);
         }
 
+        const onVideosError = (event) => setError(`${event.message}`);
+        const onVideosLoaded = (res) => {
+            if (res.error) {
+                setError(res.error);
+                return;
+            }
+            for (let i = 0; i < res.length; i++) {
+                let video = Video.fromObject(res[i]);
+                if (!videos.current.find(v => video.ID == v.ID)) {
+                    videos.current.push(video);
+                }
+            }
+            setRenders([...videos.current].map(video => <VideoPreview key={video.ID} avatar={false} video={video} />));
+        };
+
         window.onscroll = (event) => {
             const pb = Math.ceil(window.innerHeight + window.scrollY);
             const h = document.body.offsetHeight;
             if (pb < h) return;
-            Video.fetchVideos(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/videos/user/${target.ID}/${videos.length}`, onVideosLoaded, onVideosError);
+            Video.fetchVideos(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/videos/user/${target.ID}/${videos.current.length}`, onVideosLoaded, onVideosError);
         };
 
         Video.fetchVideos(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/videos/user/${target.ID}/0`, onVideosLoaded, onVideosError);

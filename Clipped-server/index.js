@@ -35,7 +35,7 @@ const app = express();
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 app.use(cors({
-    origin: ['http://clipped.izarooni.com', 'http://izarooni.com']
+    origin: '*'
 }));
 app.use(json({ limit: '50mb' }));
 app.use(urlencoded({ extended: true }));
