@@ -63,17 +63,21 @@ export function ProfileUpdate(req, res) {
                     });
                 break;
             case 'avatar': {
+                user.avatar = rawUser.avatar;
+
                 let filePath = `bin/avatar/${user.ID}.jpeg`;
+
                 let base64 = user.avatar.split('base64,')[1];
                 let buffer = Buffer.from(base64, 'base64');
                 fs.writeFileSync(filePath, buffer);
 
-                users.update().set('avatar', user.avatar)
-                    .where('id = ' + user.ID).execute().then((rs) => {
-                        print(`/profile/update/${type}/: user ${user.ID} avatar updated`);
-                        res.end(JSON.stringify({ 'message': 'Avatar updated ' }))
-                        session.close();
-                    });
+                session
+                    .sql('update users set avatar = ?, updated_at = current_timestamp where id = ?')
+                    .bind(user.avatar, user.ID).execute();
+
+                print(`/profile/update/${type}/: user ${user.ID} avatar updated`);
+                session.close();
+                res.end(JSON.stringify({ 'success': 'Avatar updated ' }))
                 break;
             }
             default:

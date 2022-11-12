@@ -87,7 +87,7 @@ export default function Profile({ user, target }) {
                 },
                 body: JSON.stringify({
                     type: 'avatar',
-                    value: user
+                    localUser: user
                 })
             })
                 .then(res => res.json())
