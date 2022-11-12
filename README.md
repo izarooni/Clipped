@@ -1,23 +1,30 @@
 # Features
-- Configurable video load batch size
-- Customizable display names (separate from login name)
-- Upload avatars via drag & drop upload (supports .gifs)
-- [ffmpeg](https://github.com/fluent-ffmpeg/node-fluent-ffmpeg) thumbnail generation
+- Customizable video player UI ([Vidstack](https://www.vidstack.io/))
+- Can offload server processing i guess idk
+- Straight to the point, easily customizable
+- less dev comments because im not sane
 
 ### Server
 - [Bcrypt](https://github.com/kelektiv/node.bcrypt.js) password encryption
 - [MySQL](https://github.com/mysql/mysql-connector-nodejs) persistence storage
 - CRUD operaetions via express api
 - Singleton login session (token based)
+- Configurable video load batch size
+- [ffmpeg](https://github.com/fluent-ffmpeg/node-fluent-ffmpeg) thumbnail generation
+- Deleting videos only moves them to the trash
 
 ### Website
 - Infinite scrolling design
 - HTML5 video thumbnails
-- Customizable video player UI ([Vidstack](https://www.vidstack.io/))
+- Dynamic page rendering
+- Responsive UI (i tried my best)
 - Video likes, dislikes and views (WIP)
-- Video comments with likes, dislikes and replies (WIP)
-- Video uploading with customizable titles and descriptions
-- Set video privacy (visibility on profile and global feed)
+- Comments which also have likes and dislikes
+- Video uploading with customizable title and description
+- Video privacy (visiblity in video feeds)
+- friends system (adds friends the sidebar for fast access)
+- Upload avatars via drag & drop upload (supports .gifs)
+- Customizable display names (separate from login name)
 
 ---
 
