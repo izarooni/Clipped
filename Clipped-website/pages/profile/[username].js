@@ -126,7 +126,7 @@ export default function Profile({ user, target }) {
         };
 
         Video.fetchVideos(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/videos/user/${target.ID}/0`, onVideosLoaded, onVideosError);
-    }, [])
+    }, [target]);
 
     return (
         <>
@@ -169,7 +169,7 @@ export default function Profile({ user, target }) {
                                     }
                                     {!self ? '' :
                                         <div className="hover:bg-white/5 hover:cursor-pointer border-l border-l-black border-t-yellow-300 border-t-2">
-                                            <a href="/logout"><i className="fa-solid fa-door-open p-8"></i></a>
+                                            <Link href="/logout"><i className="fa-solid fa-door-open p-8"></i></Link>
                                         </div>
                                     }
                                 </div>

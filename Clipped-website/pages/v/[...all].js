@@ -156,7 +156,7 @@ export default function Video({ video, owner, user }) {
     }, [editable]);
 
     // initialize comments
-    useEffect(() => loadComments(), []);
+    useEffect(() => loadComments(), [video]);
 
     return (
         <>

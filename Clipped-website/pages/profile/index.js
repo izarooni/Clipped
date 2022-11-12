@@ -2,7 +2,7 @@ import * as User from '/lib/models/user';
 import Alert from '/components/alert';
 import Navbar from '/components/navbar';
 
-export default function ({ error }) {
+export default function Profile({ error }) {
     // display a front-end error in case the profile can't be loaded
     return (
         <div className="flex">

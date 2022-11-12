@@ -41,7 +41,7 @@ export default function Upload({ user }) {
                 videos.push(video);
             }
         }
-        setRenders([...videos].map(video => <VideoPreview video={video} />));
+        setRenders([...videos].map(video => <VideoPreview key={video.ID} video={video} />));
     };
     const onVideosError = (e) => setError(`Failed to load videos: ${e}`);
 

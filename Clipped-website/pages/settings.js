@@ -68,7 +68,7 @@ export default function Settings({ user }) {
 
     useEffect(() => {
         onLogin();
-    }, [])
+    }, [onLogin])
 
     return (
         <div className="flex">
