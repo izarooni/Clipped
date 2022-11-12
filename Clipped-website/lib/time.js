@@ -1,5 +1,5 @@
 export function getDays(n) {
-    return (Math.floor(parseInt(n) / (1000 * 60 * 60 * 24))).toFixed(0);
+    return (Math.floor(parseInt(n) / (1000 * 60 * 60 * 24) )).toFixed(0);
 }
 
 export function getHours(n) {
@@ -34,13 +34,13 @@ export function toString(n) {
 
         // hours
         let v = this.getHours(n);
-        return `${v} day${v == 1 ? '' : 's'} ago`;
+        return `${v} hour${v == 1 ? '' : 's'} ago`;
 
     } else if (this.getMinutes(n) > 0) {
 
         // minutes
         let v = this.getMinutes(n);
-        return `${v} day${v == 1 ? '' : 's'} ago`;
+        return `${v} minute${v == 1 ? '' : 's'} ago`;
 
     } else return 'Moments ago';
 }
