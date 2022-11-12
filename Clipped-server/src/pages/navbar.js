@@ -1,27 +1,18 @@
 import { getConnection } from '../database.js';
+import { error } from '../utils.js';
 
-var MenuCache;
-var LastUpdated;
 
-function Navbar(req, res) {
-    if (MenuCache && Date.now() - LastUpdated < 1000 * 60 * 60 * 24) {
-        res.write(MenuCache);
-        res.end();
-        return;
-    }
-
-    getConnection().then((session) => {
-        session.sql('select slug, display_name from navbar').execute().then((rs) => {
-            MenuCache = JSON.stringify(rs.fetchAll());
-            LastUpdated = Date.now();
-
-            res.writeHead(200, { 'Content-Type': 'text/json' });
-            res.write(MenuCache);
-
+export default function Navbar(req, res) {
+    getConnection().then(async (session) => {
+        let rs = await session.sql('select slug, display_name from navbar').execute();
+        let rows = rs.fetchAll();
+        if (!rows) {
             session.close();
-            res.end();
-        });
+            return error(res, '');
+        }
+
+        session.close();
+        res.writeHead(200, { 'Content-Type': 'text/json' });
+        res.end(JSON.stringify(rows));
     });
 }
-
-export default Navbar;
