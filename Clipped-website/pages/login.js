@@ -72,15 +72,16 @@ export default function Login() {
 
     return (
         <>
-            <Alert type={'success'} className={'fixed top-24 right-6'} message={success} dismiss={(e) => setSuccess('')} />
-            <Alert className={'fixed top-24 right-6'} message={error} dismiss={(e) => setError('')} />
+            <Alert type={'success'} className={'fixed top-24 md:right-6'} message={success} dismiss={(e) => setSuccess('')} />
+            <Alert className={'fixed top-24 md:right-6'} message={error} dismiss={(e) => setError('')} />
 
-            <div className="relative flex h-full truncate">
+            <div className="relative flex min-h-screen">
                 <Navbar />
 
-                <p className="m-5 text-9xl absolute text-white/10 font-mono -z-50">{username}<span className="animate-pulse">_</span></p>
 
-                <form onKeyUp={onFormInteract} onSubmit={sendAuthRequest} id="login" className="mx-auto container pt-4">
+                <form onKeyUp={onFormInteract} onSubmit={sendAuthRequest} id="login" className="mx-auto container pt-4 relative overflow-hidden">
+                    <p className="ml-5 text-9xl absolute text-white/10 font-mono -z-50">{username}<span className="animate-pulse">_</span></p>
+
                     <div className="min-h-screen flex flex-col justify-center items-center space-y-12">
                         <input ref={usernameInputEl} id="username" name="username" type="text" placeholder="username" autoFocus={true} className="spacious-input" />
                         <div className="flex items-center relative overflow-hidden">
