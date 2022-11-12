@@ -167,14 +167,12 @@ export function VideoUpdate(req, res) {
         }
 
         if (video.delete) {
+            await session.sql('delete from videos where id = ?').bind(video.ID).execute();
             if (fs.existsSync(video.filePath)) {
-                await session.sql('delete from videos where id = ?').bind(video.ID).execute();
                 await trash(video.filePath);
-                res.end(JSON.stringify({ 'success': 'Video deleted permanently' }));
-                print(`/video/update/: video deleted ${video.ID}`);
-            } else {
-                error(res, 'video file not found');
-            }
+                print(`/video/update/: video file deleted ${video.ID}`);
+            } else print(`/video/update/: video deleted ${video.ID}`);
+            res.end(JSON.stringify({ 'success': 'Video deleted permanently' }));
         } else {
             await session
                 .sql('update videos set display_name = ?, description = ?, private = ?, likes = ?, dislikes = ? where id = ?')
