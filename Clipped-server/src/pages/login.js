@@ -24,7 +24,7 @@ function LoginHandler(req, res) {
             .sql('select * from users where username = ? limit 1')
             .bind(username)
             .execute()
-            .then(rs => {
+            .then((rs) => {
                 let user = rs.fetchOne();
 
                 if (!user || !(user = User.fromArray(user))) {

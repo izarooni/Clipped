@@ -41,7 +41,7 @@ export default function Settings({ user }) {
         if (Date.now() - saveTimestamp < 1000) return setError('Hold the save button longer...');
 
         setDisplayName(user.displayName = displayNameEl.current.value);
-        document.cookie = `user=${JSON.stringify(user)};path=/;Max-Age=86400000`;
+        document.cookie = User.generateCookie(user);
 
         fetch(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/profile/update`, {
             method: 'POST',

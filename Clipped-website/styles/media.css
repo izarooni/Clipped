@@ -1,10 +1,10 @@
 :root {
     /* p-5 equivalent */
-    --thumb-width: 20px;
+    --thumb-width: 16px;
 }
 
 .vds-ui-control {
-    @apply relative h-8 w-8;
+    @apply relative h-6 w-6;
 }
 
 vds-time-slider {
@@ -36,7 +36,7 @@ vds-video {
 }
 
 .slider-track {
-    @apply bg-white/50 h-2;
+    @apply bg-white/50 h-1.5;
     width: calc(100% - var(--thumb-width));
     position: absolute;
     top: 50%;

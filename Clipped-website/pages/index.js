@@ -21,10 +21,10 @@ export default function Home() {
                 videos.push(video);
             }
         }
-        setRenders([...videos].map(video => <VideoPreview video={video} />));
+        setRenders([...videos].map(video => <VideoPreview key={video.ID} video={video} />));
     };
 
-    const onVideosError = (e) => setError(`${e}`);
+    const onVideosError = (e) => setError(`videos failed to load: ${e.message}`);
 
     useEffect(() => {
         setError('');
@@ -41,7 +41,7 @@ export default function Home() {
 
     return (
         <>
-            <Alert className="fixed top-24 right-6" message={error} />
+            <Alert className="fixed top-24 md:right-6 md:w-1/2" message={error} />
             <div className="flex min-h-screen">
                 <Navbar />
 

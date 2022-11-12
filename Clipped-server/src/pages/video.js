@@ -9,6 +9,7 @@ import ffmpegPath from 'ffmpeg-static';
 
 import * as Video from '../models/video.js';
 import * as User from '../models/user.js';
+import * as Comment from '../models/comment.js';
 
 const CACHE = {};
 
@@ -61,18 +62,87 @@ export function VideoDetails(req, res) {
 
     getConnection().then((session) => {
         session.sql('select * from videos where id = ?')
-            .bind(ID).execute().then(rs => {
+            .bind(ID).execute().then((rs) => {
                 session.close();
 
                 let row = rs.fetchOne();
                 if (!row) return error(res, 'no such video');
 
                 const video = Video.fromArray(row);
-                res.write(JSON.stringify(video));
-                res.end();
-
+                res.end(JSON.stringify(video));
                 print(`/video/details/: found video ${ID}`);
             });
+    });
+}
+
+export function VideoComment(req, res) {
+    res.writeHead(200, { 'Content-Type': 'text/json' });
+
+    const { ID } = req.params;
+    const { action, user, comment } = req.body;
+    if (!user || !user.ID) return error(res, 'invalid user session');
+    else if (!comment) return error(res, 'must enter a message');
+    print(`/video/comment/: ${user.username} adding comment to video ${ID}`);
+
+    getConnection().then(async (session) => {
+        // create the comment if the user session is valid
+        let rs = await session.sql(`select * from users where id = ${user.ID} limit 1`).execute();
+        let row = rs.fetchOne();
+        if (!row) return error(res, 'user not found');
+
+        const remote = User.fromArray(row);
+        if (remote.loginToken != user.loginToken) return error(res, 'user not authenticated');
+
+        if (action == 'create') {
+            session
+                .sql(`insert into comments (video_id, parent_comment_id, owner_id, message, created_at) values (?, ?, ?, ?, current_timestamp)`)
+                .bind(ID, 0, user.ID, comment).execute().then((rs) => {
+                    res.end(JSON.stringify({ 'success': 'Comment created' }));
+                    session.close();
+                });
+        } else if (action == 'delete') {
+            if (comment.parentCommentID == 0) {
+                session
+                    .sql('delete from comments where id = ? or parent_comment_id = ?')
+                    .bind(comment.ID, comment.ID).execute()
+                    .then((rs) => {
+                        res.end(JSON.stringify({ 'success': 'Comment deleted' }));
+                        session.close();
+                    });
+            } else {
+                error(res, 'cannot delete a sub-comment');
+            }
+        }
+    });
+}
+
+export function VideoComments(req, res) {
+    res.writeHead(200, { 'Content-Type': 'text/json' });
+
+    const { ID, thread } = req.params;
+    print(`/video/comment/: loading comments for video ${ID}`);
+
+    getConnection().then(async (session) => {
+        let rs = await session
+            .sql(`select c.*, u.display_name from comments c join users u on c.owner_id = u.id where c.video_id = ? and parent_comment_id = ? order by created_at desc`)
+            .bind(ID, thread ? thread : 0).execute();
+        let rows = rs.fetchAll();
+        if (rows.length == 0) {
+            // no comments, write blank json response
+            // to indiciate no error thus no messages
+            session.close();
+            return res.end('{}');
+        }
+
+        res.end(JSON.stringify(
+            // convert sql result set into a json object then send it 
+            [...rows].map((row) => {
+                let c = Comment.fromArray(row);
+                c.ownerDisplayName = row[row.length - 1];
+                return c;
+            })
+        ));
+        session.close();
     });
 }
 
@@ -88,7 +158,7 @@ export function VideoUpdate(req, res) {
             if (!user) return error(res, 'must be authenticated');
             else if (user.ID != video.ownerID) return error(res, `can't modify a video owned by another person`);
 
-            let rs = await session.sql(`select * from users where id = ${user.ID} limit 1`).execute();
+            let rs = await session.sql(`select * from users where id = ? limit 1`).bind(user.ID).execute();
             let row = rs.fetchOne();
             if (!row) return error(res, 'user not found');
 
@@ -123,7 +193,7 @@ export function VideoStream(req, res) {
     getConnection().then((session) => {
         session.sql('update videos set views = views + 1 where id = ?').bind(ID).execute();
         session.sql('select * from videos where id = ?')
-            .bind(ID).execute().then(rs => {
+            .bind(ID).execute().then((rs) => {
                 session.close();
 
                 const video = Video.fromArray(rs.fetchOne());
@@ -182,14 +252,14 @@ export function VideoSearch(req, res) {
                 let row = rs.fetchAll();
                 if (row.length == 0) {
                     if (start < 1) error(res, 'No videos available');
-                    else error(res, 'Reached server limit');
+                    else error(res, 'Reached end of list');
 
                     return session.close();;
                 }
 
                 let videos = [...row].map((v) => {
                     let ret = new Video.fromArray(v);
-                    ret.ownerUsername = v[v.length - 1];
+                    ret.ownerDisplayName = v[v.length - 1];
                     return ret;
                 });
 
@@ -220,7 +290,7 @@ export function VideoSearch(req, res) {
                     let videos = [...rows].map(Video.fromArray);
                     if (rows.length == 0) {
                         if (search) error(res, 'No videos found');
-                        else error(res, 'Reached server limit');
+                        else error(res, 'Reached end of list');
                         return session.close();
                     }
 
@@ -234,14 +304,17 @@ export function VideoSearch(req, res) {
             const start = Math.max(0, parseInt(c));
 
             // list videos from newest to oldest (default)
-            session.sql(
-                `select * from videos where private = 0 and owner_id = ${b} order by created_at desc limit ${batchCount} offset ${start}`
-            ).execute().then((rs) => {
+            session.sql(`
+                select * from videos 
+                where private = 0 and owner_id = ?
+                order by created_at desc 
+                limit ? offset ?`
+            ).bind(b, batchCount, start).execute().then((rs) => {
                 let rows = rs.fetchAll();
                 let videos = [...rows].map(Video.fromArray);
                 if (rows.length == 0) {
-                    if (search) error(res, 'No videos found');
-                    else error(res, 'Reached server limit');
+                    if (search || start == 0) error(res, 'No videos found');
+                    else error(res, 'Reached end of list');
                     return session.close();
                 }
 
@@ -292,7 +365,7 @@ export function VideoPreview(req, res) {
         });
     };
 
-    if (CACHE[filePath]) {
+    if (CACHE[filePath] = false) {
         if (fs.existsSync(filePath)) {
             // print(`Fast-served existing preview for video ${ID}`);
             getVideo((c) => {
@@ -315,6 +388,23 @@ export function VideoPreview(req, res) {
                     // create video thumbnail if it doens't exist
                     ffmpeg(video.filePath)
                         .setFfmpegPath(ffmpegPath)
+                        .on('end', () => {
+                            getVideo(c => res.end(c));
+                            session.close();
+                            print(`/video/preview/: .webm preview generated for video ${video.ID}`);
+
+                            CACHE[filePath] = true; // success
+                        })
+                        .on('error', (e) => {
+                            res.end();
+                            session.close();
+                            print(`/video/preview/: failed to generate preview for video ${video.ID}: ${e.message}`);
+
+                            CACHE[filePath] = false; // reset cache to allow retrying
+                        })
+                        .on('filenames', function (filenames) {
+                            print('/video/preview/: will generate ' + filenames.join(', '));
+                        })
                         .format('webm')
                         .native()
                         .seekInput(3)
@@ -322,19 +412,11 @@ export function VideoPreview(req, res) {
                         .duration(3)
                         .size('200x?')
                         .output(filePath)
-                        .on('end', () => {
-                            getVideo(c => res.end(c));
-                            session.close();
-                            print(`/video/preview/: Generated for video ${video.ID}\r\n`);
-
-                            CACHE[filePath] = true; // success
-                        })
-                        .on('error', (e) => {
-                            res.end();
-                            session.close();
-                            console.error(`[video.js] Failed to generate preview for video ${video.ID}: ${e.message}`);
-
-                            CACHE[filePath] = false; // reset cache to allow retrying
+                        .screenshots({
+                            count: 1,
+                            folder: `bin/preview`,
+                            filename: `${video.ID}.jpg`,
+                            size: '1280x720',
                         })
                         .run();
                     return;

@@ -9,7 +9,7 @@ const print = (s) => {
     console.log(`[profile.js] ${s}`);
 };
 
-function ProfileUpdate(req, res) {
+export function ProfileUpdate(req, res) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
 
     const { type, localUser: rawUser, newPassword } = req.body;
@@ -45,8 +45,8 @@ function ProfileUpdate(req, res) {
                         bcrypt.hash(newPassword, 10, (err, hash) => {
                             session
                                 .sql('update users set password = ?, updated_at = current_timestamp where id = ?')
-                                .bind(hash, user.ID).execute().then(rs => {
-                                    print(`profile/update/${type}/: user ${user.ID} password updated`);
+                                .bind(hash, user.ID).execute().then(rs2 => {
+                                    print(`/profile/update/${type}/: user ${user.ID} password updated`);
                                     res.end(JSON.stringify({ 'success': 'Password saved' }));
                                     session.close();
                                 });
@@ -56,8 +56,8 @@ function ProfileUpdate(req, res) {
 
                 session
                     .sql('update users set display_name = ?, updated_at = current_timestamp where id = ?')
-                    .bind(localUser.displayName, user.ID).execute().then(rs => {
-                        print(`profile/update/${type}/: user ${user.ID} display name updated to ${localUser.displayName}`);
+                    .bind(localUser.displayName, user.ID).execute().then((rs) => {
+                        print(`/profile/update/${type}/: user ${user.ID} display name updated to ${localUser.displayName}`);
                         res.end(JSON.stringify({ 'success': 'Display name saved' }));
                         session.close();
                     });
@@ -70,7 +70,7 @@ function ProfileUpdate(req, res) {
 
                 users.update().set('avatar', user.avatar)
                     .where('id = ' + user.ID).execute().then((rs) => {
-                        print(`profile/update/${type}/: user ${user.ID} avatar updated`);
+                        print(`/profile/update/${type}/: user ${user.ID} avatar updated`);
                         res.end(JSON.stringify({ 'message': 'Avatar updated ' }))
                         session.close();
                     });
@@ -83,7 +83,7 @@ function ProfileUpdate(req, res) {
     });
 }
 
-function ProfilePage(req, res) {
+export function ProfilePage(req, res) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
 
     const { ID } = req.params;
@@ -91,12 +91,14 @@ function ProfilePage(req, res) {
 
     getConnection().then((session) => {
         let s = isNaN(parseInt(ID))
-            ? `select * from users where username like ? limit 1`
-            : `select * from users where id = ? limit 1`;
+            ? 'select * from users where username like ? limit 1'
+            : 'select * from users where id = ? limit 1';
 
         session
             .sql(s).bind(ID)
             .execute().then((rs) => {
+                session.close();
+
                 let row = rs.fetchOne();
                 if (row) {
                     const user = User.fromArray(row);
@@ -108,15 +110,16 @@ function ProfilePage(req, res) {
                     delete user.loginToken;
 
                     res.end(JSON.stringify(user));
-                } else error(res, `failed to find any user named  ${ID}.`);
+                    return;
+                }
 
-                session.close();
-                print(`profile/: looking up user ${ID}... ${row ? 'found!' : 'not found'}`);
-            })
-    });
+                print(`/profile/: looking up user ${ID}... ${row ? 'found!' : 'not found'}`);
+                error(res, `failed to find any user named  ${ID}.`);
+            });
+    }).catch(e => print(`/profile/: ${e}`));
 }
 
-function ProfileAvatarPage(req, res) {
+export function ProfileAvatarPage(req, res) {
     res.set('Content-Type', 'image/jpeg');
 
     const sendDefaultAvatar = (res) => res.end(fs.readFileSync("bin/avatar/_.jpg"));
@@ -126,10 +129,10 @@ function ProfileAvatarPage(req, res) {
 
     getConnection().then((session) => {
         session
-            .sql('select * from users where id = ?')
+            .sql('select * from users where id = ? limit 1')
             .bind(ID)
             .execute()
-            .then(rs => {
+            .then((rs) => {
                 session.close();
                 let row = rs.fetchOne();
                 let user = null;
@@ -158,7 +161,5 @@ function ProfileAvatarPage(req, res) {
                     res.end();
                 }
             });
-    });
+    }).catch(e => print(`/profile/avatar/: ${e}`));;
 }
-
-export { ProfileUpdate, ProfilePage, ProfileAvatarPage }

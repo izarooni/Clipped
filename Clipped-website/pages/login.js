@@ -1,39 +1,43 @@
-import React, { useState, useRef } from 'react'
-import { nanoid } from 'nanoid'
-import Link from 'next/link'
-import Alert from '/components/alert'
-import Navbar from '/components/navbar'
+import React, { useState, useRef } from 'react';
+import { nanoid } from 'nanoid';
+import Link from 'next/link';
+import Alert from '/components/alert';
+import Navbar from '/components/navbar';
+import * as User from '/lib/models/user';
 
 export default function Login() {
+    const [success, setSuccess] = useState('');
     const [error, setError] = useState('');
     const [username, setUsername] = useState('');
-    const iUsername = useRef(null);
-    const iPassword = useRef(null);
-    const iBall/**/ = false;
-    const [eyeball, setEyeball] = useState('fa-solid fa-eye text-3xl');
+    const [privacy, setPrivacy] = useState(true);
+    const usernameInputEl = useRef(null);
+    const passwordInputEl = useRef(null);
 
-    /**
-     * handle for when any input element is changed
-     */
-    const onInteract = (e) => {
+    const onMsgResult = (res) => {
+        if (res.success) setSuccess(res.success);
+        if (res.error) setError(res.error);
+    };
+    const onFormInteract = (e) => {
         e.preventDefault();
-        setError('');
 
-        // on username input field changed
         if (e.target.id == 'username') {
             // update background it looks cool i think
-            setUsername(iUsername.current.value);
+            setUsername(usernameInputEl.current.value);
         }
         // on enter key pressed any input inside the form
         if (e.keyCode == 13) sendAuthRequest(e);
     };
-
+    const onTogglePrivacy = (e) => {
+        setPrivacy(!privacy)
+        passwordInputEl.current.setAttribute('type', privacy ? 'text' : 'password');
+    };
     const sendAuthRequest = (e) => {
         e.preventDefault();
 
+        setError(''); setSuccess('');
         const invalid = (s) => !s || s.indexOf(/[^a-zA-Z0-9-_]/g) >= 0
-        const username = iUsername.current.value;
-        const password = iPassword.current.value;
+        const username = usernameInputEl.current.value;
+        const password = passwordInputEl.current.value;
 
         if (invalid(username) || invalid(password)) {
             return setError('Please enter valid credentials.');
@@ -54,40 +58,36 @@ export default function Login() {
         })
             .then(res => res.json())
             .then(res => {
-                if (res.error) setError(`${res.error}`);
-                else {
-                    document.cookie = `user=${JSON.stringify(res)};path=/;Max-Age=86400000`;
-                    window.location = '/profile';
+                onMsgResult(res);
+                if (!res) return;
+                if (res.ID) {
+                    document.cookie = User.generateCookie(res);
+                    setInterval(() => {
+                        window.location = '/profile';
+                    }, 1200);
                 }
             })
-            .catch((e) => {
-                setError(e.ror);
-            })
-    };
-    const onClickEyeBall = (e) => {
-        e.preventDefault();
-
-        iBall = !iBall;
-        iPassword.current.setAttribute('type', iBall ? 'text' : 'password');
-        setEyeball(iBall ? 'fa-solid fa-eye text-3xl' : 'fa-regular fa-eye text-3xl');
+            .catch((e) => setError(`Failed to login: ${e}`));
     };
 
     return (
-        <div className="flex h-full">
-            <Navbar />
+        <>
+            <Alert type={'success'} className={'fixed top-24 right-6'} message={success} dismiss={(e) => setSuccess('')} />
+            <Alert className={'fixed top-24 right-6'} message={error} dismiss={(e) => setError('')} />
 
-            <div className="relative w-full p-5">
-                <p className="text-9xl absolute text-white/10 font-mono -z-50">{username}<span className="animate-pulse">_</span></p>
+            <div className="relative flex h-full truncate">
+                <Navbar />
 
-                <Alert className={'fixed right-6'} message={error} dismiss={(e) => setError('')} />
-                <form onKeyUp={onInteract} onSubmit={sendAuthRequest} id="login" className="h-full flex justify-center items-center">
-                    <div className="flex flex-col justify-center items-center space-y-12">
-                        <input ref={iUsername} id="username" name="username" type="text" placeholder="username" autoFocus="true" />
+                <p className="m-5 text-9xl absolute text-white/10 font-mono -z-50">{username}<span className="animate-pulse">_</span></p>
+
+                <form onKeyUp={onFormInteract} onSubmit={sendAuthRequest} id="login" className="mx-auto container pt-4">
+                    <div className="min-h-screen flex flex-col justify-center items-center space-y-12">
+                        <input ref={usernameInputEl} id="username" name="username" type="text" placeholder="username" autoFocus={true} className="spacious-input" />
                         <div className="flex items-center relative overflow-hidden">
-                            <input ref={iPassword} id="password" name="password" type="password" placeholder="password" />
-                            <button onClick={onClickEyeBall} type="button" className="p-6 absolute right-0 border-l border-white/10 hover:bg-white/10 rounded cursor-pointer">
-                                <i className={eyeball}></i>
-                            </button>
+                            <input ref={passwordInputEl} id="password" name="password" type="password" placeholder="password" className="spacious-input" />
+                            <span onClick={onTogglePrivacy} className="p-6 absolute right-0 border-l border-white/10 hover:bg-white/10 rounded cursor-pointer">
+                                {privacy ? <i className="fa-regular fa-eye-slash text-2xl w-8"></i> : <i className="fa-solid fa-eye text-2xl w-8"></i>}
+                            </span>
                         </div>
                         <div className="flex flex-col text-center font-mono">
                             <button onClick={sendAuthRequest} className="text-3xl px-16 py-4 hover:button-skew hover:shadow" type="button">Login</button>
@@ -98,7 +98,7 @@ export default function Login() {
                     </div>
                 </form>
             </div >
-        </div>
+        </>
     );
 }
 

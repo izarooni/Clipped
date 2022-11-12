@@ -10,21 +10,23 @@ import * as User from '/lib/models/user';
 import Avatar from '/components/avatar';
 import Alert from '/components/alert';
 import Navbar from '/components/navbar';
+import Comment from '/components/comment';
 
 export default function Video({ video, owner, user }) {
     const Router = useRouter();
+
     const titleInput = useRef(null);
     const descriptionEl = useRef(null);
     const descriptionInput = useRef(null);
+    const commentInputEl = useRef(null);
 
     const [editable, setEditable] = useState(false);
     const [likes, setLikes] = useState(video.likes);
     const [dislikes, setDislikes] = useState(video.dislikes);
-
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [comments, setComments] = useState('');
 
-    const unavailable = (e) => setError('Currently unavailable.');
     const onMsgResult = (res) => {
         if (res.success) setSuccess(res.success);
         if (res.error) setError(res.error);
@@ -43,15 +45,35 @@ export default function Video({ video, owner, user }) {
                 'action': action,
                 // optional: depends on <action>
                 'user': user,
-                // the video object, typically containing limited data
-                // this fetch will retrieve the rest of the data
+                // the video object, typically containing only basic properties
                 'video': video,
             }),
-        }).then(res => res.json());
+        })
+            .then(res => res.json());
     };
 
-    const onSubmitComment = unavailable;
-
+    const onSubmitComment = (e) => {
+        setError(''); setSuccess('');
+        let comment = commentInputEl.current.value;
+        fetch(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/comment/${video.ID}`, {
+            method: 'POST',
+            mode: 'cors',
+            cache: 'no-cache',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                'action': 'create',
+                'user': user,
+                'comment': comment,
+            })
+        })
+            .then(res => res.json())
+            .then((res) => {
+                onMsgResult(res);
+                if (res.success) loadComments();
+            });
+    };
     const onSubmitLike = (e) => {
         setError(''); setSuccess('');
         setLikes(video.likes += 1);
@@ -66,7 +88,6 @@ export default function Video({ video, owner, user }) {
             if (res.error) setError(res.error);
         });
     };
-
     const onSetVideoPrivate = (e) => {
         setError(''); setSuccess('');
         if (!user) return;
@@ -89,7 +110,6 @@ export default function Video({ video, owner, user }) {
         video.description = sDescription;
         sendUpdateVideo('private').then(onMsgResult);
     };
-
     var deleteTimestamp;
     const onDeleteDown = () => deleteTimestamp = Date.now();
     const onDeleteUp = () => {
@@ -104,10 +124,28 @@ export default function Video({ video, owner, user }) {
             }, 1200);
         });
     };
-
     const onShowSettings = (e) => setEditable(!editable);
+    const loadComments = () => {
+        fetch(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/comments/${video.ID}`, {
+            method: 'POST',
+            mode: 'cors',
+            cache: 'no-cache'
+        })
+            .then(res => res.json())
+            .then((res) => {
+                onMsgResult(res);
+
+                let temp = [];
+                for (let i = 0; i < res.length; i++) {
+                    let comment = res[i];
+                    temp.push(<Comment key={comment.ID} data={comment} onMsgResult={onMsgResult} />);
+                }
+                setComments(temp);
+            });
+    };
 
     useEffect(() => {
+        // reset input values when video settings are being edited
         if (titleInput.current) titleInput.current.value = video.displayName;
         if (descriptionInput.current) descriptionInput.current.value = video.description;
         if (descriptionEl.current) {
@@ -116,6 +154,9 @@ export default function Video({ video, owner, user }) {
             };
         }
     }, [editable]);
+
+    // initialize comments
+    useEffect(() => loadComments(), []);
 
     return (
         <>
@@ -142,7 +183,7 @@ export default function Video({ video, owner, user }) {
                                     </div>
                                 </vds-time-slider>
 
-                                <div className="absolute bottom-0 w-full flex justify-between px-5 mb-2">
+                                <div className="absolute bottom-0 w-full flex justify-between px-5 mb-3">
                                     <div className="flex-1 flex items-center space-x-4">
                                         <vds-play-button class="vds-ui-control">
                                             {/* play svg */}
@@ -196,7 +237,7 @@ export default function Video({ video, owner, user }) {
 
                         <vds-aspect-ratio ratio="16/9">
                             {/* vds-video must be a direct child of vds-aspect-ratio */}
-                            <vds-video poster={`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/preview2/${video.ID}`}>
+                            <vds-video poster={`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/preview/${video.ID}`} autoplay>
                                 <video src={`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/${video.ID}`} preload="none" type="video/mp4" playsInline></video>
                             </vds-video>
                         </vds-aspect-ratio>
@@ -207,7 +248,7 @@ export default function Video({ video, owner, user }) {
                         <div className="flex flex-col truncate">
                             <p className="text-2xl">{video.displayName}</p>
                             <p className="mb-1">
-                                {video.views} views &middot; {Time.toString(Date.now() - video.createdAt)}
+                                {video.views} views &middot; {Time.toString(video.createdAt)}
                             </p>
                         </div>
 
@@ -280,16 +321,18 @@ export default function Video({ video, owner, user }) {
 
                     <div className="space-y-6 border-t border-t-white/10">
                         {!user ? '' :
-                            <div className="w-full space-y-2 py-6">
+                            <div className="w-full space-y-2 mt-2">
                                 <div className="flex w-full">
                                     <Avatar user={user.ID} className="w-12 mr-4" />
-                                    <textarea className="bg-transparent p-2 rounded border border-white/10 w-full resize-none focus:outline-none" placeholder="Add a comment..."></textarea>
+                                    <textarea ref={commentInputEl} className="bg-transparent p-3 rounded border border-white/10 w-full resize-none focus:outline-none" placeholder="Add a comment..." rows="4"></textarea>
                                 </div>
                                 <div className="w-full text-end">
                                     <button onClick={onSubmitComment} className="bg-blue-500 px-5 py-3 rounded transition-all hover:bg-blue-600 active:bg-blue-700">submit</button>
                                 </div>
                             </div>
                         }
+
+                        {comments}
                     </div>
                 </div>
             </div>
@@ -309,7 +352,7 @@ export async function getServerSideProps({ req, params }) {
     const video = await res.json();
     const owner = await User.getProfile(video.ownerID);
     let user = await User.verifyUser(req.cookies.user);
-    if (user.error) user = null;
+    if (!user || user.error) user = null;
 
     return {
         props: {

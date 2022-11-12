@@ -43,6 +43,10 @@ export function fromCookie(a) {
     }
 }
 
+export function generateCookie(user) {
+    return `user=${JSON.stringify(user)};path=/;Max-Age=86400000`;
+}
+
 export function fromArray(a) {
     return {
         ID:         /**/a[0],

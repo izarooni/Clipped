@@ -64,19 +64,12 @@ export function getFiles(directory) {
     })
 }
 
-export async function saveToNavbar(session, video) {
-    // make somewhat url seo-friendly
-    const slug = sanitize(video.fileName.toLowerCase())
-        .replace(/[ _]/g, '-') // convert underscore to dash
-        .replace(/[^0-9A-Za-z-]/g, ''); // remove non-alpha-numerics, excluding dash and space
-    const filePath = sanitize(video.filePath);
-
-    // insert video details into our database
-    let rs = await session.sql(
-        `insert into navbar (slug, display_name, target_location) 
-        values ('${slug}', '${sanitize(video.fileName)}', '${filePath}')
-        on duplicate key update target_location = '${filePath}'`
-    ).execute();
+export async function saveToNavbar(session, slug, displayName) {
+    let rs = await session.sql(`
+        insert into navbar (slug, display_name) 
+        values (?, ?) 
+        on duplicate key update display_name = ?`)
+        .bind(slug, displayName, displayName).execute();
     let id = rs.getAutoIncrementValue();
     if (id) print(`checking navbar-item '${slug}'... created for \\${video.filePath.split('\\').splice(-2).join('\\')} `);
     else print(`checking navbar-item '${slug}'... exists`);

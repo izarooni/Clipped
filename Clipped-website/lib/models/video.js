@@ -55,6 +55,6 @@ export function fromObject(a) {
          * we can't store the username with the video because the display name
          * is changeable at the user's discretion
          */
-        ownerUsername: a.ownerUsername || null,
+        ownerDisplayName: a.ownerDisplayName || null,
     };
 }

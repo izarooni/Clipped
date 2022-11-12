@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('./media.css');
+@import url("./media.css");
 
 html,
 body,
@@ -52,12 +52,10 @@ body {
     width: 120%;
 }
 
-form#login input {
-    @apply bg-transparent py-4 px-8 text-3xl
-    focus:outline-none
-    border border-white/10
-    rounded relative
-    focus:bg-white/10;
+.spacious-input {
+    @apply bg-transparent py-4 px-8 md:text-2xl lg:text-3xl
+    rounded border border-white/10
+    focus:bg-white/10 focus:outline-none;
 }
 
 .hold-button {
@@ -76,4 +74,12 @@ form#login input {
 }
 .hold-button:active:after {
     @apply h-full;
+}
+
+.dropdown:hover .dropdown-menu {
+    @apply block z-50;
+}
+.dropdown-menu button {
+    @apply w-full shadow py-2 px-4 whitespace-nowrap
+     text-white transition-all;
 }

@@ -18,8 +18,6 @@ getConnection().then(async (session) => {
 
         let stats = fs.lstatSync(file.filePath);
         if (stats.isDirectory()) {
-            await saveToNavbar(session, file);
-
             // get files only from the sub-directory
             getFiles(file.filePath)
                 .filter(f => f.fileName.split('.').length > 0)
@@ -43,24 +41,26 @@ app.use(urlencoded({ extended: true }));
 import Navbar from './src/pages/navbar.js'
 import LoginPage from './src/pages/login.js'
 import RegisterPage from './src/pages/register.js'
-import { ProfileUpdate, ProfilePage, ProfileAvatarPage } from './src/pages/profile.js'
-import { VideoUpload, VideoStream, VideoDetails, VideoUpdate, VideoSearch, VideoPreview } from './src/pages/video.js'
+import * as ProfileHandler from './src/pages/profile.js'
+import * as VideoHandler from './src/pages/video.js'
 
 app.post('/navbar', (req, res) => Navbar(req, res));
 app.post('/login', (req, res) => LoginPage(req, res));
 app.post('/register', (req, res) => RegisterPage(req, res));
 
-app.get /**/('/video/preview/:video', (req, res) => VideoPreview(req, res));
-app.get /**/('/video/:ID', (req, res) => VideoStream(req, res));
-app.post/**/('/video/upload', upload.single('file'), (req, res) => VideoUpload(req, res));
-app.post/**/('/video/details', (req, res) => VideoUpdate(req, res));
-app.get /**/('/video/details/:ID', (req, res) => VideoDetails(req, res));
+app.get /**/('/video/preview/:video', (req, res) => VideoHandler.VideoPreview(req, res));
+app.get /**/('/video/:ID', (req, res) => VideoHandler.VideoStream(req, res));
+app.post/**/('/video/upload', upload.single('file'), (req, res) => VideoHandler.VideoUpload(req, res));
+app.post/**/('/video/details', (req, res) => VideoHandler.VideoUpdate(req, res));
+app.get /**/('/video/details/:ID', (req, res) => VideoHandler.VideoDetails(req, res));
+app.post/**/('/video/comment/:ID', (req, res) => VideoHandler.VideoComment(req, res));
+app.post/**/('/video/comments/:ID/:thread?', (req, res) => VideoHandler.VideoComments(req, res));
 
-app.post/**/('/videos/:a/:b/:c?', (req, res) => VideoSearch(req, res));
+app.post/**/('/videos/:a/:b/:c?', (req, res) => VideoHandler.VideoSearch(req, res));
 
-app.get /**/('/profile/avatar/:ID', (req, res) => ProfileAvatarPage(req, res));
-app.post/**/('/profile/update', (req, res) => ProfileUpdate(req, res));
-app.post/**/('/profile/:ID', (req, res) => ProfilePage(req, res));
+app.get /**/('/profile/avatar/:ID', (req, res) => ProfileHandler.ProfileAvatarPage(req, res));
+app.post/**/('/profile/update', (req, res) => ProfileHandler.ProfileUpdate(req, res));
+app.post/**/('/profile/:ID', (req, res) => ProfileHandler.ProfilePage(req, res));
 
 app.listen(8888, () => console.log(`
 ONLIN 
