@@ -37,7 +37,7 @@ export function VideoUpload(req, res) {
         const ogExtName = path.extname(details.name);
         const ogFileName = details.name.split('.').slice(0, -1).join('.');
         const fileName = `${user.ID}_${ogFileName}${ogExtName}`;
-        const filePath = `${process.env.video_dir}\\${fileName}`;
+        const filePath = `bin\\videos\\${fileName}`;
 
         let rs = await session
             .sql('insert into videos (owner_id, display_name, file_name, file_path) values (?, ?, ?, ?)')

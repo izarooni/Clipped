@@ -12,7 +12,7 @@ getConnection().then(async (session) => {
     await initialize(session);
 
     // path to root-directory of videos
-    let files = getFiles(process.env.video_dir);
+    let files = getFiles('bin\\videos');
     for (let i = 0; i < files.length; i++) {
         let file = files[i];
 
