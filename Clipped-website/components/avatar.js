@@ -1,8 +1,7 @@
-import Image from 'next/link';
 import Link from 'next/link';
 
 export default function Avatar({ user, className }) {
-    className ||= '';
+    if (!className) className = '';
 
     return (
         <div className={`flex justify-center items-center ${className}`}>
