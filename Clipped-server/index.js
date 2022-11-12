@@ -1,6 +1,6 @@
 import express, { json, urlencoded } from 'express';
 import { initialize, getConnection } from './src/database.js';
-import { getFiles, saveToNavbar, saveToVideos } from './src/utils.js';
+import { getFiles, saveToVideos } from './src/utils.js';
 import * as dotenv from 'dotenv';
 import fs from 'fs';
 import cors from 'cors';
@@ -12,7 +12,7 @@ getConnection().then(async (session) => {
     await initialize(session);
 
     // path to root-directory of videos
-    let files = getFiles('bin\\videos');
+    let files = getFiles('bin\\videos\\');
     for (let i = 0; i < files.length; i++) {
         let file = files[i];
 
