@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import Link from 'next/Link';
+import Link from 'next/link';
 
 import * as User from '/lib/models/user';
 import * as Video from '/lib/models/video';
