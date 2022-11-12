@@ -21,7 +21,7 @@ export default function VideoPreview({ avatar, video }) {
         <div key={video.ID} className="flex flex-col space-y-1 w-full">
             <div className="border border-black/40 bg-gray-500/10">
                 <Link href={`/v/${video.ID}`}>
-                    <video className="transition-all xl:hover:scale-105 hover:z-30 w-full hover:shadow cursor-pointer" loop muted playsInline preload="metadata" onMouseEnter={play} onMouseLeave={pause}>
+                    <video poster={`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/preview/${video.ID}?type=image`} className="transition-all xl:hover:scale-105 hover:z-30 w-full hover:shadow cursor-pointer" loop muted playsInline preload="metadata" onMouseEnter={play} onMouseLeave={pause}>
                         <source src={`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/preview/${video.ID}`} type="video/mp4" />
                     </video>
                 </Link>

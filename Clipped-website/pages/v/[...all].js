@@ -237,7 +237,7 @@ export default function Video({ video, owner, user }) {
 
                         <vds-aspect-ratio ratio="16/9">
                             {/* vds-video must be a direct child of vds-aspect-ratio */}
-                            <vds-video poster={`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/preview/${video.ID}`} autoplay>
+                            <vds-video poster={`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/preview/${video.ID}?type=image`} autoplay>
                                 <video src={`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/${video.ID}`} preload="none" type="video/mp4" playsInline></video>
                             </vds-video>
                         </vds-aspect-ratio>
