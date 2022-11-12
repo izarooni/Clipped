@@ -12,7 +12,7 @@ function getAvaialbleFiles(directory) {
     return fs.readdirSync(directory, {
         withFileTypes: true,
     }).filter(file => {
-        let filePath = `${directory}\\${file.name}`;
+        let filePath = `${directory}/${file.name}`;
 
         switch (path.extname(file.name)) {
             case '.mp4':
@@ -27,7 +27,7 @@ export function error(res, msg) { res.end(JSON.stringify({ 'error': msg })); }
 
 export function getFiles(directory) {
     return getAvaialbleFiles(directory).map(file => {
-        let filePath = `${directory}\\${file.name}`;
+        let filePath = `${directory}/${file.name}`;
         let fileName = file.name;
 
         let stats = fs.statSync(filePath);
