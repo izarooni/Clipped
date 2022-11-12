@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import NavbarToggleButton from '/components/navbar-toggle';
+import Avatar from '/components/avatar';
 
 const NavItemClass = 'relative pl-12 pr-16 py-3 flex space-x-4 items-center cursor-pointer hover:bg-gray-500/10';
 
@@ -11,8 +12,28 @@ const NavItemClass = 'relative pl-12 pr-16 py-3 flex space-x-4 items-center curs
  * 
  * @param {*} menu item list of pages
  */
-export default function Navbar() {
-    const [display, setDisplay] = useState([]);
+export default function Navbar({ proc }) {
+    const [serverMenu, setServerMenu] = useState([]);
+    const [friendsMenu, setFriendsMenu] = useState([]);
+
+    const importFriendsMenu = () => {
+        if (localStorage.friends) {
+            let friends = JSON.parse(localStorage.friends);
+            let a = [];
+            for (let i = 0; i < friends.length; i++) {
+                let friend = friends[i];
+                a.push(
+                    <Link key={friend.ID} href={`/profile/${friend.ID}`}>
+                        <div className={NavItemClass}>
+                            <Avatar user={friend.ID} className="py-2 w-8" />
+                            <a className="stretched-link">{friend.displayName}</a>
+                        </div>
+                    </Link>
+                );
+            }
+            setFriendsMenu(a);
+        }
+    };
 
     useEffect(() => {
         fetch(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/navbar`, {
@@ -30,19 +51,21 @@ export default function Navbar() {
                     let displayName = r[i][1];
                     a.push(
                         <Link key={slug} href={`/browse/${slug}`}>
-                            <div key={slug} className={NavItemClass}>
-                                <i className="py-2 fa-regular fa-clone"></i>
+                            <div className={NavItemClass}>
+                                <i className="px-2 py-2 fa-regular fa-clone"></i>
                                 <a className="stretched-link">{displayName}</a>
                             </div>
                         </Link>
                     );
                 }
-                setDisplay(a);
+                setServerMenu(a);
             })
             .catch(e => {
                 console.error(`[navbar.js] Failed to retrieve navbar menu items`, e)
             });
+        importFriendsMenu();
     }, []);
+    useEffect(() => importFriendsMenu(), [proc]);
 
     return (
         <div id="navbar" className="z-50 xl:z-40 shadow-xl h-screen bg-zinc-900 transition-all fixed top-0 xl:sticky xl:top-16">
@@ -51,12 +74,13 @@ export default function Navbar() {
             <div id="navbar-menu" className="flex flex-col whitespace-nowrap max-h-screen pb-24 overflow-y-auto" >
                 <Link href={`/`}>
                     <div className={NavItemClass}>
-                        <i className="py-2 fa-solid fa-house"></i>
+                        <i className="px-2 py-2 fa-solid fa-house"></i>
                         <a className="stretched-link">Home</a>
                     </div>
                 </Link>
 
-                {display}
+                {serverMenu}
+                {friendsMenu}
             </div>
         </div>
     )

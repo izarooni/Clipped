@@ -51,14 +51,15 @@ app.post('/register', /**/(req, res) => RegisterPage(req, res));
 app.get /**/('/video/:ID',                          /**/(req, res) => VideoHandler.VideoStream(req, res));
 app.post/**/('/video/upload', upload.single('file'),/**/(req, res) => VideoHandler.VideoUpload(req, res));
 app.post/**/('/video/details',                      /**/(req, res) => VideoHandler.VideoUpdate(req, res));
-app.get /**/('/video/preview/:ID',                  /**/(req, res) => VideoHandler.VideoPreview(req, res));
 app.get /**/('/video/details/:ID',                  /**/(req, res) => VideoHandler.VideoDetails(req, res));
+app.get /**/('/video/preview/:ID',                  /**/(req, res) => VideoHandler.VideoPreview(req, res));
 app.post/**/('/video/comment/:ID',                  /**/(req, res) => VideoHandler.VideoComment(req, res));
 app.post/**/('/video/comments/:ID/:thread?',        /**/(req, res) => VideoHandler.VideoComments(req, res));
 
 app.post/**/('/videos/:a/:b/:c?', (req, res) => VideoHandler.VideoSearch(req, res));
 
 app.get /**/('/profile/avatar/:ID', /**/(req, res) => ProfileHandler.ProfileAvatarPage(req, res));
+app.post/**/('/profile/friend/:ID?', /**/(req, res) => ProfileHandler.ProfileAddFriend(req, res));
 app.post/**/('/profile/update',     /**/(req, res) => ProfileHandler.ProfileUpdate(req, res));
 app.post/**/('/profile/:ID',        /**/(req, res) => ProfileHandler.ProfilePage(req, res));
 

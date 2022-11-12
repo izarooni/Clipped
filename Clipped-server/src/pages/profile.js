@@ -157,9 +157,57 @@ export function ProfileAvatarPage(req, res) {
                     }
                     print(`/profile/avatar/: cached user ${user.ID} avatar into jpeg`);
                 } else {
-                    res.write(fs.readFileSync(filePath));
-                    res.end();
+                    res.end(fs.readFileSync(filePath));
                 }
             });
     }).catch(e => print(`/profile/avatar/: ${e}`));;
+}
+
+export function ProfileAddFriend(req, res) {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+
+    const { ID } = req.params;
+    const { user } = req.body;
+    if (!ID) return error(res, 'Must specify an ID');
+    if (!user) return error(res, 'must be authenticated');
+
+    getConnection().then((session) => {
+        session.sql(`select * from users where id = ? limit 1`).bind(user.ID).execute().then(async (rs) => {
+            let row = rs.fetchOne();
+            if (!row) {
+                session.close();
+                return error(res, 'Invalid session');
+            }
+
+            let row2 = await session.sql('select * from users where id = ? limit 1').bind(ID).execute();
+            if (!(row2 = row2.fetchOne())) {
+                session.close();
+                return error(res, 'Friend not found');
+            }
+
+            const remote = User.fromArray(row);
+            const target = User.fromArray(row2);
+            if (remote.loginToken != user.loginToken) return error(res, 'user not authenticated');
+
+            let row3 = await session.sql('select f.user_b, u.display_name from friends f join users u on f.user_b = u.id where f.user_a = ?').bind(remote.ID).execute();
+            if (!(row3 = row3.fetchAll())) return error(res, 'No friends');
+
+            const friends = [...row3].map(r => { return { ID: r[0], displayName: r[1] } });
+            for (let i = 0; i < friends.length; i++) {
+                let friend = friends[i];
+
+                if (friend.ID == ID) {
+                    session.sql('delete from friends where user_a = ? and user_b = ?').bind(remote.ID, ID).execute().then(r => session.close());
+                    friends.splice(i, 1);
+                    res.end(JSON.stringify(friends));
+                    print(`/profile/friend/${ID}: ${remote.username} unfriended ${target.username}`)
+                    return;
+                }
+            }
+            session.sql('insert into friends (user_a, user_b) values (?, ?)').bind(remote.ID, ID).execute().then(r => session.close());
+            friends.push({ ID: target.ID, displayName: target.displayName });
+            res.end(JSON.stringify(friends));
+            print(`/profile/friend/${ID}: ${remote.username} friended ${target.username}`)
+        });
+    }).catch(e => print(`/profile/friend/${ID}: ${e}`));
 }

@@ -22,17 +22,40 @@ export default function Profile({ user, target }) {
     const [renders, setRenders] = useState([]);
     const [success, setSuccess] = useState('');
     const [error, setError] = useState('');
+    const [friends, setFriends] = useState(false);
 
     // collection of videos uploaded by the target user
     const videos = [];
     // boolean: true if the profile page is the current user (the user that's logged-in)
     const self = user && user.ID == target.ID;
 
+    const onMsgResult = (res) => {
+        if (res.success) setSuccess(res.success);
+        if (res.error) setError(res.error);
+    };
     const onVideosError = (event) => setError(`${event.message}`);
-    const onUserLiked = (event) => setError('Currently unavailable');
+    const onUserLiked = (event) => {
+        setError(''); setSuccess('');
+        fetch(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/profile/friend/${target.ID}`, {
+            method: 'POST',
+            mode: 'cors',
+            cache: 'no-cache',
+            'headers': {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ user })
+        })
+            .then(res => res.json())
+            .then((res) => {
+                onMsgResult(res);
+                if (!(res instanceof Array)) return console.log(res);
+
+                setFriends(res.filter(f => f.ID == target.ID).length);
+                localStorage.friends = JSON.stringify(res);
+            });
+    };
     const onUpdateAvatar = (event) => {
-        setError('');
-        setSuccess('');
+        setError(''); setSuccess('');
 
         // get files from event on the dataTransfer object as an array
         let files = [...event.dataTransfer.files];
@@ -68,11 +91,8 @@ export default function Profile({ user, target }) {
                     value: user
                 })
             })
-                .then(rs => rs.json())
-                .then(rs => {
-                    if (rs.error) setError(rs.error);
-                    else if (rs.success) setSuccess(rs.success);
-                })
+                .then(res => res.json())
+                .then(onMsgResult)
                 .catch(e => {
                     setError(`Failed to update avatar: ${e}`);
                 });
@@ -93,6 +113,11 @@ export default function Profile({ user, target }) {
     };
 
     useEffect(() => {
+        if (localStorage.friends) {
+            let friends = JSON.parse(localStorage.friends);
+            setFriends(friends.filter(f => f.ID == target.ID).length > 0);
+        }
+
         window.onscroll = (event) => {
             const pb = Math.ceil(window.innerHeight + window.scrollY);
             const h = document.body.offsetHeight;
@@ -109,7 +134,7 @@ export default function Profile({ user, target }) {
             <Alert className={'fixed top-24 md:right-6'} message={error} dismiss={(e) => setError('')} />
 
             <div className="flex min-h-screen">
-                <Navbar />
+                <Navbar proc={friends} />
 
                 <div className="p-6 container mx-auto truncate">
                     <span className="text-center text-7xl md:text-9xl sticky bottom-0 text-white/40 font-mono -z-50 w-screen overflow-hidden whitespace-pre-wrap truncate">
@@ -131,7 +156,7 @@ export default function Profile({ user, target }) {
 
                                 <div className="grid grid-cols-3 text-center">
                                     <div className={`${!self ? 'w-full col-span-3' : ''} hover:bg-white/5 hover:cursor-pointer border-t-2 border-t-red-300`}>
-                                        {!self ? <PeepoHeart onClick={onUserLiked} /> :
+                                        {!self ? <PeepoHeart onClick={onUserLiked} enabled={friends} /> :
                                             <Link href="/upload">
                                                 <i className="fa-solid fa-cloud-arrow-up p-8"></i>
                                             </Link>

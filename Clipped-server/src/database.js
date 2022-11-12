@@ -72,6 +72,7 @@ export async function initialize(session) {
             primary key (id),
             index (user_a),
             index (user_b),
+            index (user_a, user_b),
             foreign key (user_a) references users (id) on delete cascade on update cascade,
             foreign key (user_b) references users (id) on delete cascade on update cascade
         )`).execute()
