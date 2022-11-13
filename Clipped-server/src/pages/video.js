@@ -59,6 +59,9 @@ export function VideoDetails(req, res) {
     res.writeHead(200, { 'Content-Type': 'text/json' });
 
     const { ID } = req.params;
+    if (!ID || isNaN(parseInt(ID))) {
+        return error(res, 'Must specify an ID');
+    }
 
     getConnection().then((session) => {
         session.sql('select * from videos where id = ?')
@@ -187,8 +190,9 @@ export function VideoUpdate(req, res) {
 export function VideoStream(req, res) {
 
     const { ID } = req.params;
+    if (!ID) return error(res, 'Invalid video request');
 
-    getConnection().then((session) => {
+    getConnection().then(async (session) => {
         session.sql('update videos set views = views + 1 where id = ?').bind(ID).execute();
         session.sql('select * from videos where id = ?')
             .bind(ID).execute().then((rs) => {
@@ -242,10 +246,6 @@ export function VideoSearch(req, res) {
                 where v.private = 0 
                 order by v.views desc 
                 limit ${batchCount} offset ${start}`
-                // `select * from videos 
-                // where private = 0 
-                // order by views desc 
-                // limit ${batchCount} offset ${start}`
             ).execute().then((rs) => {
                 let row = rs.fetchAll();
                 if (row.length == 0) {

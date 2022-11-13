@@ -16,56 +16,47 @@ export default function Navbar({ proc }) {
     const [serverMenu, setServerMenu] = useState([]);
     const [friendsMenu, setFriendsMenu] = useState([]);
 
-    const importFriendsMenu = () => {
-        if (localStorage.friends) {
-            let friends = JSON.parse(localStorage.friends);
-            let a = [];
-            for (let i = 0; i < friends.length; i++) {
-                let friend = friends[i];
-                a.push(
-                    <Link key={friend.ID} href={`/profile/${friend.ID}`}>
-                        <div className={NavItemClass}>
-                            <Avatar user={friend.ID} className="py-2 w-8" />
-                            <a className="stretched-link">{friend.displayName}</a>
-                        </div>
-                    </Link>
-                );
-            }
-            setFriendsMenu(a);
-        }
-    };
-
     useEffect(() => {
-        fetch(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/navbar`, {
-            method: 'POST',
-            cache: 'no-cache',
-            'headers': {
-                'Content-Type': 'application/json'
-            },
-        })
-            .then(r => r.json())
-            .then(r => {
+        const importServerMenu = () => {
+            fetch(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/navbar`, {
+                method: 'POST',
+                cache: 'no-cache',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            })
+                .then(res => res.json())
+                .then((res) => {
+                    let a = [];
+                    console.log(res);
+                    setServerMenu(a);
+                })
+                .catch(e => {
+                    console.error(`[navbar.js] Failed to retrieve navbar menu items`, e)
+                });
+        };
+        const importFriendsMenu = () => {
+            if (localStorage.friends) {
+                let friends = JSON.parse(localStorage.friends);
                 let a = [];
-                for (let i = 0; i < r.length; i++) {
-                    let slug = r[i][0];
-                    let displayName = r[i][1];
+                for (let i = 0; i < friends.length; i++) {
+                    let friend = friends[i];
                     a.push(
-                        <Link key={slug} href={`/browse/${slug}`}>
+                        <Link key={friend.ID} href={`/profile/${friend.ID}`}>
                             <div className={NavItemClass}>
-                                <i className="px-2 py-2 fa-regular fa-clone"></i>
-                                <a className="stretched-link">{displayName}</a>
+                                <Avatar user={friend.ID} className="py-2 w-8" />
+                                <a className="stretched-link">{friend.displayName}</a>
                             </div>
                         </Link>
                     );
                 }
-                setServerMenu(a);
-            })
-            .catch(e => {
-                console.error(`[navbar.js] Failed to retrieve navbar menu items`, e)
-            });
+                setFriendsMenu(a);
+            }
+        };
+
+        importServerMenu();
         importFriendsMenu();
-    }, []);
-    useEffect(() => importFriendsMenu(), [proc]);
+    }, [proc]);
 
     return (
         <div id="navbar" className="z-50 xl:z-40 shadow-xl h-screen bg-zinc-900 transition-all fixed top-0 xl:sticky xl:top-16">

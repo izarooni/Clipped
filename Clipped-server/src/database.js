@@ -44,16 +44,20 @@ export async function initialize(session) {
     rs = await session.sql('select * from users where id = 1 limit 1').execute();
     let user = rs.fetchOne();
     if (!user) {
-        bcrypt.hash('1234', 10, (err, hash) => {
+
+        const defaultUsername = process.env.default_username;
+        const defaultPassword = process.env.default_password;
+
+        bcrypt.hash(defaultPassword, 10, (err, hash) => {
             session
                 .sql(`
             insert into users (id, web_admin, display_name, username, password) 
             values (default, ?, ?, ?, ?)`)
-                .bind(1, 'admin', 'admin', hash).execute().then((res) => {
+                .bind(1, defaultUsername, defaultUsername, hash).execute().then((res) => {
                     let id = res.getAutoIncrementValue();
                     if (id) {
                         print(`=============================================================================`);
-                        print(`[Database] Created web-admin account. username: admin, password: 1234`);
+                        print(`[Database] Created web-admin account. username: ${defaultUsername}, password: ${defaultPassword}`);
                         print(`=============================================================================`);
                     }
                 });
