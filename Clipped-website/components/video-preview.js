@@ -19,6 +19,7 @@ export default function VideoPreview({ avatar, video }) {
 
     return (
         <div key={video.ID} className="flex flex-col space-y-1 w-full">
+            {/* video element */}
             <div className="border border-black/40 bg-gray-500/10">
                 <Link href={`/v/${video.ID}`}>
                     <video poster={`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/preview/${video.ID}?type=image`} className="transition-all xl:hover:scale-105 hover:z-30 w-full hover:shadow cursor-pointer" loop muted playsInline preload="metadata" onMouseEnter={play} onMouseLeave={pause}>
@@ -27,14 +28,16 @@ export default function VideoPreview({ avatar, video }) {
                 </Link>
             </div>
 
-            <div className="flex space-x-4 overflow-hidden">
+            <div className="flex space-x-3">
                 {!showAvatar ? '' :
-                    <div className="w-1/3">
-                        <Avatar user={video.ownerID} />
-                    </div>}
-                <div className="relative w-full flex flex-col">
+                    <div className="flex-shrink">
+                        <Avatar user={video.ownerID} className="w-16" />
+                    </div>
+                }
+
+                <div className="relative flex-grow flex flex-col overflow-hidden">
                     <Link href={`/v/${video.ID}`}>
-                        <a className="stretched-link font-bold max-h-12 whitespace-normal truncate line-clamp-2">{video.displayName}</a>
+                        <a className="font-bold max-h-12 whitespace-normal break-words line-clamp-2">{video.displayName}</a>
                     </Link>
                     <p className="text-sm text-white/80">{video.ownerDisplayName}</p>
                     <p className="text-sm text-white/80">{`${video.views}`} views &middot; {Time.toString(video.createdAt)}</p>

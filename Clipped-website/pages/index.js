@@ -10,17 +10,18 @@ export default function Home() {
     const [error, setError] = useState('');
     const videos = useRef([]);
 
+    const onMsgResult = (res) => {
+        if (res.success) setSuccess(res.success);
+        if (res.error) setError(res.error);
+    };
     useEffect(() => {
         setError('');
 
         const onVideosError = (e) => setError(`videos failed to load: ${e.message}`);
-        const onVideosReceived = (r) => {
-            if (r.error) {
-                setError(r.error);
-                return;
-            }
-            for (let i = 0; i < r.length; i++) {
-                let video = Video.fromObject(r[i]);
+        const onVideosReceived = (res) => {
+            onMsgResult(res);
+            for (let i = 0; i < res.length; i++) {
+                let video = Video.fromObject(res[i]);
                 if (!videos.current.find(v => video.ID == v.ID)) {
                     videos.current.push(video);
                 }

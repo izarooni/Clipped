@@ -245,8 +245,8 @@ export function VideoSearch(req, res) {
                 join users u on v.owner_id = u.ID 
                 where v.private = 0 
                 order by v.views desc 
-                limit ${batchCount} offset ${start}`
-            ).execute().then((rs) => {
+                limit ? offset ?`
+            ).bind(batchCount, start).execute().then((rs) => {
                 let row = rs.fetchAll();
                 if (row.length == 0) {
                     if (start < 1) error(res, 'No videos available');
