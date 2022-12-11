@@ -95,9 +95,8 @@ export function VideoDetails(req, res) {
                 .execute();
 
             if (rs = rs.fetchOne()) {
-
+                video.user_review = rs[0];
             }
-            video.user_review = rs[0];
         }
 
         session.close();
