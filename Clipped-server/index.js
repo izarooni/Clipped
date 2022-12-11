@@ -52,7 +52,7 @@ app.post('/register', /**/(req, res) => RegisterPage(req, res));
 
 app.get /**/('/video/:ID',                          /**/(req, res) => VideoHandler.VideoStream(req, res));
 app.post/**/('/video/upload', upload.single('file'),/**/(req, res) => VideoHandler.VideoUpload(req, res));
-app.post/**/('/video/details',                      /**/(req, res) => VideoHandler.VideoUpdate(req, res));
+app.post/**/('/video/update' ,                      /**/(req, res) => VideoHandler.VideoUpdate(req, res));
 app.post/**/('/video/details/:ID',                  /**/(req, res) => VideoHandler.VideoDetails(req, res));
 app.get /**/('/video/preview/:ID',                  /**/(req, res) => VideoHandler.VideoPreview(req, res));
 app.post/**/('/video/comment/:ID',                  /**/(req, res) => VideoHandler.VideoComment(req, res));
