@@ -71,12 +71,6 @@ export function VideoDetails(req, res) {
                 if (!row) return error(res, 'no such video');
 
                 const video = Video.fromArray(row);
-
-                if (!fs.existsSync(video.filePath)) {
-                    print(`/videos/details/: video ${ID} file not found.`);
-                    return error(res, 'Video is no longer available.');
-                }
-
                 res.writeHead(200, { 'Content-Type': 'text/json' });
                 res.end(JSON.stringify(video));
                 print(`/video/details/: found video ${ID}`);
