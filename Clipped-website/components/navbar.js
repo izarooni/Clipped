@@ -28,7 +28,7 @@ export default function Navbar({ proc }) {
                 .then(res => res.json())
                 .then((res) => {
                     let a = [];
-                    console.log(res);
+                    // console.log('server navbar', res);
                     setServerMenu(a);
                 })
                 .catch(e => {
