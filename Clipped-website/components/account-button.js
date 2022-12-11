@@ -6,8 +6,14 @@ export default function AccountButton() {
     const [e, set] = useState();
     useEffect(() => {
         // client sided verification
-        const cookie = document.cookie.split(';')[0].split('=')[1];
-        const user = User.fromCookie(cookie);
+        let user = null;
+        let cookie = document.cookie.split(';')
+            .filter(s => s.indexOf('user=') >= 0);
+
+        if (cookie.length == 1) {
+            cookie = cookie[0].split("=")[1];
+            user = User.fromCookie(cookie);
+        }
 
         // only show the button if the user cookie exists
         set(user ?
