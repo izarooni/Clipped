@@ -45,7 +45,7 @@ export default function Navbar({ proc }) {
                         <Link key={friend.ID} href={`/profile/${friend.ID}`}>
                             <div className={NavItemClass}>
                                 <Avatar user={friend.ID} className="py-2 w-8" />
-                                <a className="stretched-link">{friend.displayName}</a>
+                                <a className="stretched-link">{friend.displayName || friend.username}</a>
                             </div>
                         </Link>
                     );
@@ -56,6 +56,7 @@ export default function Navbar({ proc }) {
 
         importServerMenu();
         importFriendsMenu();
+        // update navbar when variable is updated
     }, [proc]);
 
     return (

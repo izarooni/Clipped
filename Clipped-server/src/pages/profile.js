@@ -170,48 +170,62 @@ export function ProfileAvatarPage(req, res) {
 export function ProfileAddFriend(req, res) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
 
-    const { ID } = req.params;
+    const { ID } = req.params; // target user ID
     const { user } = req.body;
     if (!ID) return error(res, 'Must specify an ID');
-    if (!user) return error(res, 'must be authenticated');
+    if (!user) return error(res, 'Must login');
 
-    getConnection().then((session) => {
-        session.sql(`select * from users where id = ? limit 1`).bind(user.ID).execute().then(async (rs) => {
-            let row = rs.fetchOne();
-            if (!row) {
-                session.close();
-                return error(res, 'Invalid session');
+    getConnection().then(async (session) => {
+        // validate user
+        let rs = await session.sql(`select * from users where id = ? limit 1`).bind(user.ID).execute();
+        let row = rs.fetchOne();
+        if (!row) return error(res, 'user not found');
+
+        const remote = User.fromArray(row);
+        if (remote.loginToken != user.loginToken) return error(res, 'user not authenticated');
+
+        // get targeted user
+        rs = await session.sql('select * from users where id = ? limit 1').bind(ID).execute();
+        if (!(row = rs.fetchOne())) return error(res, 'Friend not found');
+        const target = User.fromArray(row);
+
+        // get friend list for user a, match (join-clause) each friend with their user metadata
+        row = await session
+            .sql('select f.user_b, u.display_name, u.username from friends f join users u on f.user_b = u.id where f.user_a = ?')
+            .bind(remote.ID)
+            .execute();
+        if (!(row = row.fetchAll())) return error(res, 'No friends');
+
+        // map SQL result set into OOP
+        const friends = [...row].map(r => {
+            return {
+                ID: r[0],
+                displayName: r[1],
+                username: r[2]
             }
-
-            let row2 = await session.sql('select * from users where id = ? limit 1').bind(ID).execute();
-            if (!(row2 = row2.fetchOne())) {
-                session.close();
-                return error(res, 'Friend not found');
-            }
-
-            const remote = User.fromArray(row);
-            const target = User.fromArray(row2);
-            if (remote.loginToken != user.loginToken) return error(res, 'user not authenticated');
-
-            let row3 = await session.sql('select f.user_b, u.display_name from friends f join users u on f.user_b = u.id where f.user_a = ?').bind(remote.ID).execute();
-            if (!(row3 = row3.fetchAll())) return error(res, 'No friends');
-
-            const friends = [...row3].map(r => { return { ID: r[0], displayName: r[1] } });
-            for (let i = 0; i < friends.length; i++) {
-                let friend = friends[i];
-
-                if (friend.ID == ID) {
-                    session.sql('delete from friends where user_a = ? and user_b = ?').bind(remote.ID, ID).execute().then(r => session.close());
-                    friends.splice(i, 1);
-                    res.end(JSON.stringify(friends));
-                    print(`/profile/friend/${ID}: ${remote.username} unfriended ${target.username}`)
-                    return;
-                }
-            }
-            session.sql('insert into friends (user_a, user_b) values (?, ?)').bind(remote.ID, ID).execute().then(r => session.close());
-            friends.push({ ID: target.ID, displayName: target.displayName });
-            res.end(JSON.stringify(friends));
-            print(`/profile/friend/${ID}: ${remote.username} friended ${target.username}`)
         });
+
+        // if the user is already a friend, unfriend them
+        for (let i = 0; i < friends.length; i++) {
+            let friend = friends[i];
+
+            if (friend.ID == ID) {
+                session.sql('delete from friends where user_a = ? and user_b = ?').bind(remote.ID, ID).execute().then(r => session.close());
+                friends.splice(i, 1);
+                res.end(JSON.stringify(friends));
+                print(`/profile/friend/${ID}: ${remote.username} unfriended ${target.username}`)
+                return;
+            }
+        }
+
+        // not friends; add
+        session.sql('insert into friends (user_a, user_b) values (?, ?)').bind(remote.ID, ID).execute().then(r => session.close());
+        friends.push({
+            ID: target.ID,
+            displayName: target.displayName,
+            username: target.username,
+        });
+        res.end(JSON.stringify(friends));
+        print(`/profile/friend/${ID}: ${remote.username} friended ${target.username}`);
     }).catch(e => print(`/profile/friend/${ID}: ${e}`));
 }
