@@ -186,7 +186,7 @@ export function ProfileAddFriend(req, res) {
 
         // get targeted user
         rs = await session.sql('select * from users where id = ? limit 1').bind(ID).execute();
-        if (!(row = rs.fetchOne())) return error(res, 'Person does not exist');
+        if (!(row = rs.fetchOne())) return error(res, 'User does not exist');
         const target = User.fromArray(row);
 
         // get friend list for user a, match (join-clause) each friend with their user metadata
