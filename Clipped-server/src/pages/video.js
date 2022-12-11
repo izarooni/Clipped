@@ -58,23 +58,52 @@ export function VideoUpload(req, res) {
 export function VideoDetails(req, res) {
 
     const { ID } = req.params;
+    const { user } = req.body;
     if (!ID || isNaN(parseInt(ID))) {
         return error(res, 'Must specify an ID');
     }
 
-    getConnection().then((session) => {
-        session.sql('select * from videos where id = ?')
-            .bind(ID).execute().then((rs) => {
-                session.close();
+    getConnection().then(async (session) => {
+        let rs = await session.sql('select * from videos where id = ?').bind(ID).execute();
+        let row = rs.fetchOne();
+        if (!row) return error(res, 'no such video');
+        const video = Video.fromArray(row);
 
-                let row = rs.fetchOne();
-                if (!row) return error(res, 'no such video');
+        rs = await session.sql(`
+                select
+                    (select count(*) from video_popularity where value = 1 and video_id = ?) as likes,
+                    (select count(*) from video_popularity where value = 0 and video_id = ?) as dislikes`)
+            .bind(video.ID, video.ID)
+            .execute();
 
-                const video = Video.fromArray(row);
-                res.writeHead(200, { 'Content-Type': 'text/json' });
-                res.end(JSON.stringify(video));
-                print(`/video/details/: found video ${ID}`);
-            });
+        rs = rs.fetchOne();
+        video.likes = rs[0];
+        video.dislikes = rs[1];
+
+        if (user) {
+            // validate session
+            rs = await session.sql(`select * from users where id = ? limit 1`).bind(user.ID).execute();
+            row = rs.fetchOne();
+            if (!row) return error(res, 'user not found');
+            const remote = User.fromArray(row);
+            if (remote.loginToken != user.loginToken) return error(res, 'user not authenticated');
+
+            // check if user liked or disliksed the video
+            rs = await session
+                .sql(`select \`value\` from video_popularity where video_id = ? and user_id = ?`)
+                .bind(video.ID, remote.ID)
+                .execute();
+
+            if (rs = rs.fetchOne()) {
+
+            }
+            video.user_review = rs[0];
+        }
+
+        session.close();
+        res.writeHead(200, { 'Content-Type': 'text/json' });
+        res.end(JSON.stringify(video));
+        print(`/video/details/: found video ${ID}`);
     });
 }
 
@@ -160,33 +189,63 @@ export function VideoUpdate(req, res) {
     if (!video) return error(res, 'must provide a video object');
 
     getConnection().then(async (session) => {
-        if (action == 'private') {
+        switch (action) {
+            case 'private':
+            case 'like':
+            case 'dislike': {
 
-            if (!user) return error(res, 'must be authenticated');
-            else if (user.ID != video.ownerID) return error(res, `can't modify a video owned by another person`);
+                if (!user) return error(res, 'must be authenticated');
+                else if (user.ID != video.ownerID) return error(res, `can't modify a video owned by another person`);
 
-            let rs = await session.sql(`select * from users where id = ? limit 1`).bind(user.ID).execute();
-            let row = rs.fetchOne();
-            if (!row) return error(res, 'user not found');
+                let rs = await session.sql(`select * from users where id = ? limit 1`).bind(user.ID).execute();
+                let row = rs.fetchOne();
+                if (!row) return error(res, 'user not found');
 
-            const remote = User.fromArray(row);
-            if (remote.loginToken != user.loginToken) return error(res, 'user not authenticated');
+                const remote = User.fromArray(row);
+                if (remote.loginToken != user.loginToken) return error(res, 'user not authenticated');
+
+                if (video.delete) {
+                    await session.sql('delete from videos where id = ?').bind(video.ID).execute();
+                    if (fs.existsSync(video.filePath)) {
+                        await trash(video.filePath);
+                        print(`/video/update/${action}: video file deleted ${video.ID}`);
+                    }
+
+                    print(`/video/update/${action}: video deleted ${video.ID}`);
+                    res.end(JSON.stringify({ 'success': 'Video deleted permanently' }));
+                } else {
+                    let value = (action == 'like' ? 1 : 0);
+                    let rs = await session
+                        .sql(`select * from video_popularity where video_id = ? and user_id = ?`)
+                        .bind(video.ID, remote.ID)
+                        .execute();
+
+                    if (rs.fetchOne()) {
+                        await session
+                            .sql('update video_popularity set `value` = ? where video_id = ? and user_id = ?')
+                            .bind(value, video.ID, remote.ID)
+                            .execute();
+                    } else {
+                        await session
+                            .sql('insert into video_popularity (video_id, user_id, `value`) values (?, ?, ?)')
+                            .bind(video.ID, remote.ID, value)
+                            .execute();
+                    }
+                }
+
+                break;
+            }
+            default: {
+                await session
+                    .sql('update videos set display_name = ?, description = ?, private = ?, likes = ?, dislikes = ? where id = ?')
+                    .bind(video.displayName, video.description, video.private, video.likes, video.dislikes, video.ID)
+                    .execute();
+                res.end(JSON.stringify({ 'success': 'Video updated successfully' }));
+                break;
+            }
         }
 
-        if (video.delete) {
-            await session.sql('delete from videos where id = ?').bind(video.ID).execute();
-            if (fs.existsSync(video.filePath)) {
-                await trash(video.filePath);
-                print(`/video/update/: video file deleted ${video.ID}`);
-            } else print(`/video/update/: video deleted ${video.ID}`);
-            res.end(JSON.stringify({ 'success': 'Video deleted permanently' }));
-        } else {
-            await session
-                .sql('update videos set display_name = ?, description = ?, private = ?, likes = ?, dislikes = ? where id = ?')
-                .bind(video.displayName, video.description, video.private, video.likes, video.dislikes, video.ID).execute();
-            res.end(JSON.stringify({ 'success': 'Video updated successfully' }));
-            print(`/video/update/: updated video ${video.ID}`);
-        }
+        print(`/video/update/${action}: updated video ${video.ID}`);
         session.close();
     });
 }

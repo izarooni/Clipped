@@ -15,6 +15,8 @@ import Comment from '/components/comment';
 export default function Video({ video, owner, user }) {
     const Router = useRouter();
 
+    const likesEl = useRef(null);
+    const dislikesEl = useRef(null);
     const titleInput = useRef(null);
     const descriptionEl = useRef(null);
     const descriptionInput = useRef(null);
@@ -32,6 +34,9 @@ export default function Video({ video, owner, user }) {
         if (res.error) setError(res.error);
     };
     const sendUpdateVideo = async (action) => {
+        likesEl.current.classList.toggle('text-green-500', video.user_review);
+        dislikesEl.current.classList.toggle('text-red-500', !video.user_review);
+
         return fetch(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/details`, {
             method: 'POST',
             mode: 'cors',
@@ -76,27 +81,51 @@ export default function Video({ video, owner, user }) {
     };
     const onSubmitLike = (e) => {
         setError(''); setSuccess('');
-        setLikes(video.likes += 1);
-        sendUpdateVideo('public').then(res => {
-            if (res.error) setError(res.error);
+
+        // remove dislike if exists
+        if (!video.user_review) setDislikes(video.dislikes = (dislikes - 1));
+        else return; // can't like a video twice
+
+        // increase video likes and set user review
+        setLikes(video.likes + 1);
+        video.user_review = 1;
+
+        // like action indicates we are sending a user object (auth required)
+        sendUpdateVideo('like').then(res => {
+            if (res.error) {
+                setError(res.error);
+            }
         });
     };
     const onSubmitDislike = (e) => {
         setError(''); setSuccess('');
-        setDislikes(video.dislikes += 1);
-        sendUpdateVideo('public').then(res => {
-            if (res.error) setError(res.error);
+
+        // remove likes if exists
+        if (video.user_review) setLikes(video.likes = (likes - 1));
+        else return; // can't dislike a video twice
+
+        // increase video dislikes and set user review
+        setDislikes(video.dislikes + 1);
+        video.user_review = 0;
+
+        // dislike action indicates we are sending a user object (auth required)
+        sendUpdateVideo('dislike').then(res => {
+            if (res.error) {
+                setError(res.error);
+            }
         });
     };
     const onSetVideoPrivate = (e) => {
         setError(''); setSuccess('');
         if (!user) return;
         video.private = 0;
+        // private action indicates we are sending a user object (auth required)
         sendUpdateVideo('private').then(onMsgResult);
     };
     const onSetVideoPublic = (e) => {
         setError(''); setSuccess('');
         video.private = 1;
+        // private action indicates we are sending a user object (auth required)
         sendUpdateVideo('private').then(onMsgResult);
     };
     const onSetVideoProps = (e) => {
@@ -108,15 +137,21 @@ export default function Video({ video, owner, user }) {
 
         video.displayName = sTitle;
         video.description = sDescription;
+        // private action indicates we are sending a user object (auth required)
         sendUpdateVideo('private').then(onMsgResult);
     };
     var deleteTimestamp;
     const onDeleteDown = () => deleteTimestamp = Date.now();
     const onDeleteUp = () => {
         setError(''); setSuccess('');
+
+        // match animation timing
         let elapsed = Date.now() - deleteTimestamp;
         if (elapsed < 1000) return setError('Hold the delete button longer...');
+
+        // mark the video for deletion, the server will read this property
         video.delete = true;
+        // private action indicates we are sending a user object (auth required)
         sendUpdateVideo('private').then(res => {
             onMsgResult(res);
             setTimeout(() => {
@@ -155,8 +190,12 @@ export default function Video({ video, owner, user }) {
         }
     }, [video, editable]);
 
-    // initialize comments
-    useEffect(() => loadComments(), [video]);
+    // initialize page
+    useEffect(() => {
+        loadComments();
+        likesEl.current.classList.toggle('text-green-500', video.user_review);
+        dislikesEl.current.classList.toggle('text-red-500', !video.user_review);
+    }, [video]);
 
     return (
         <>
@@ -254,13 +293,13 @@ export default function Video({ video, owner, user }) {
 
                         {/* like / dislike */}
                         <div className="flex items-center space-x-4">
-                            <div className="text-center transition-all hover:text-green-500 active:text-green-600">
+                            <div ref={likesEl} className="text-center transition-all hover:text-green-500 active:text-green-600">
                                 <button onClick={onSubmitLike} className="px-6 py-2">
                                     <i className="fa-solid fa-thumbs-up"></i>
                                     <p>{likes}</p>
                                 </button>
                             </div>
-                            <div className="text-center transition-all hover:text-red-500 active:text-red-600">
+                            <div ref={dislikesEl} className="text-center transition-all hover:text-red-500 active:text-red-600">
                                 <button onClick={onSubmitDislike} className="px-6 py-2">
                                     <i className="fa-solid fa-thumbs-down"></i>
                                     <p>{dislikes}</p>
@@ -341,18 +380,20 @@ export default function Video({ video, owner, user }) {
 }
 
 export async function getServerSideProps({ req, params }) {
+    let user = await User.verifyUser(req.cookies.user);
+    if (!user || user.error) user = null;
+
     let res = await fetch(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/details/${params.all[0]}`, {
-        method: 'GET',
+        method: 'POST',
         cache: 'no-cache',
         'headers': {
             'Content-Type': 'application/json'
         },
+        body: JSON.stringify({ user }),
     });
 
     const video = await res.json();
     const owner = await User.getProfile(video.ownerID);
-    let user = await User.verifyUser(req.cookies.user);
-    if (!user || user.error) user = null;
 
     return {
         props: {

@@ -150,6 +150,27 @@ export async function initialize(session) {
     if (warnings.length == 0) print('Checking navbar table...created');
     else if (warnings) print('Checking navbar table...', warnings[0].msg);
 
+    //=============================================================================
+    //                         create navbar table
+    //=============================================================================
+    rs = await session.sql(
+        `create table if not exists video_popularity (
+            id int not null,
+            video_id int not null,
+            user_id int not null,
+            \`value\` int not null,
+            primary key (id),
+            index video_pop_user_id (user_id),
+            index video_pop_video_id (video_id),
+            index video_pop_update (video_id, user_id),
+            index video_pop_stats (\`value\`, video_id),
+            foreign key (user_id) references users (id) on delete cascade on update restrict,
+            foreign key (video_id) references videos (id) on delete cascade on update cascade
+        )`).execute();
+    warnings = rs.getWarnings();
+    if (warnings.length == 0) print('Checking popularity table...created');
+    else if (warnings) print('Checking popularity table...', warnings[0].msg);
+
     console.log();
 }
 
