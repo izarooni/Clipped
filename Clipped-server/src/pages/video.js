@@ -56,7 +56,6 @@ export function VideoUpload(req, res) {
 }
 
 export function VideoDetails(req, res) {
-    res.writeHead(200, { 'Content-Type': 'text/json' });
 
     const { ID } = req.params;
     if (!ID || isNaN(parseInt(ID))) {
@@ -72,6 +71,13 @@ export function VideoDetails(req, res) {
                 if (!row) return error(res, 'no such video');
 
                 const video = Video.fromArray(row);
+
+                if (!fs.existsSync(video.filePath)) {
+                    print(`/videos/details/: video ${ID} file not found.`);
+                    return error(res, 'Video is no longer available.');
+                }
+
+                res.writeHead(200, { 'Content-Type': 'text/json' });
                 res.end(JSON.stringify(video));
                 print(`/video/details/: found video ${ID}`);
             });
@@ -123,6 +129,10 @@ export function VideoComments(req, res) {
     res.writeHead(200, { 'Content-Type': 'text/json' });
 
     const { ID, thread } = req.params;
+    if (!ID || isNaN(parseInt(ID))) {
+        return error(res, 'Video is no longer available.');
+    }
+
     print(`/video/comment/: loading comments for video ${ID}`);
 
     getConnection().then(async (session) => {
@@ -190,7 +200,9 @@ export function VideoUpdate(req, res) {
 export function VideoStream(req, res) {
 
     const { ID } = req.params;
-    if (!ID) return error(res, 'Invalid video request');
+    if (!ID || isNaN(parseInt(ID))) {
+        return error(res, 'Video is no longer available.');
+    }
 
     getConnection().then(async (session) => {
         session.sql('update videos set views = views + 1 where id = ?').bind(ID).execute();
@@ -199,6 +211,10 @@ export function VideoStream(req, res) {
                 session.close();
 
                 const video = Video.fromArray(rs.fetchOne());
+
+                if (!fs.existsSync(video.filePath)) {
+                    return res.writeHead(404, 'Video is no longer available.');
+                }
 
                 fs.readFile(video.filePath, function (err, data) {
                     if (err) throw err;
