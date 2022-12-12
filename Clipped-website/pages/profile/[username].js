@@ -169,6 +169,7 @@ export default function Profile({ user, target }) {
                                         </div>
                                     }
                                     {!self ? '' :
+                                    // eslint-disable-next-line @next/next/no-html-link-for-pages
                                         <div className="hover:bg-white/5 hover:cursor-pointer border-l border-l-black border-t-yellow-300 border-t-2">
                                             <a href="/logout"><i className="fa-solid fa-door-open p-8"></i></a>
                                         </div>

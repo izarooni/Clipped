@@ -220,6 +220,7 @@ export default function Video({ video, owner, user }) {
     useEffect(() => {
         loadComments();
         updatePopularityUI();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [video]);
 
     return (
