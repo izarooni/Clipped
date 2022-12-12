@@ -1,35 +1,12 @@
 import express, { json, urlencoded } from 'express';
 import { initialize, getConnection } from './src/database.js';
-import { getFiles, saveToVideos } from './src/utils.js';
 import * as dotenv from 'dotenv';
-import fs from 'fs';
 import cors from 'cors';
 import multer from 'multer';
 
 dotenv.config();
 
-getConnection().then(async (session) => {
-    await initialize(session);
-
-    // path to root-directory of videos
-    let files = getFiles('bin/videos/');
-    for (let i = 0; i < files.length; i++) {
-        let file = files[i];
-
-        let stats = fs.lstatSync(file.filePath);
-        if (stats.isDirectory()) {
-            // get files only from the sub-directory
-            getFiles(file.filePath)
-                .filter(f => f.fileName.split('.').length > 0)
-                .forEach((video) => {
-                    saveToVideos(session, video);
-                });
-        } else {
-            saveToVideos(session, file);
-        }
-    }
-    console.log();
-});
+getConnection().then((session) => initialize(session));
 
 const app = express();
 const storage = multer.memoryStorage();
@@ -50,18 +27,26 @@ app.post('/navbar',   /**/(req, res) => Navbar(req, res));
 app.post('/login',    /**/(req, res) => LoginPage(req, res));
 app.post('/register', /**/(req, res) => RegisterPage(req, res));
 
+// watch video
 app.get /**/('/video/:ID',                          /**/(req, res) => VideoHandler.VideoStream(req, res));
+// upload video file
 app.post/**/('/video/upload', upload.single('file'),/**/(req, res) => VideoHandler.VideoUpload(req, res));
+// update video details
 app.post/**/('/video/update' ,                      /**/(req, res) => VideoHandler.VideoUpdate(req, res));
+// retrieve video details
 app.post/**/('/video/details/:ID',                  /**/(req, res) => VideoHandler.VideoDetails(req, res));
+// retrieve video thumbnail
 app.get /**/('/video/preview/:ID',                  /**/(req, res) => VideoHandler.VideoPreview(req, res));
+// submit video comment
 app.post/**/('/video/comment/:ID',                  /**/(req, res) => VideoHandler.VideoComment(req, res));
+// load video comments
 app.post/**/('/video/comments/:ID/:thread?',        /**/(req, res) => VideoHandler.VideoComments(req, res));
 
+// browse videos
 app.post/**/('/videos/:a/:b/:c?', (req, res) => VideoHandler.VideoSearch(req, res));
 
 app.get /**/('/profile/avatar/:ID', /**/(req, res) => ProfileHandler.ProfileAvatarPage(req, res));
-app.post/**/('/profile/friend/:ID?', /**/(req, res) => ProfileHandler.ProfileAddFriend(req, res));
+app.post/**/('/profile/friend/:ID?',/**/(req, res) => ProfileHandler.ProfileAddFriend(req, res));
 app.post/**/('/profile/update',     /**/(req, res) => ProfileHandler.ProfileUpdate(req, res));
 app.post/**/('/profile/:ID',        /**/(req, res) => ProfileHandler.ProfilePage(req, res));
 

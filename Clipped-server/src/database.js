@@ -1,5 +1,7 @@
 import { getSession } from '@mysql/xdevapi';
+import { getFiles, saveToVideos } from './utils.js';
 import * as bcrypt from 'bcrypt';
+import fs from 'fs';
 
 function print(s, ...args) {
     console.log(`[database.js] ${s}`, ...args);
@@ -102,8 +104,26 @@ export async function initialize(session) {
             foreign key (owner_id) references users (id) on delete no action on update cascade
         )`).execute()
     warnings = rs.getWarnings();
-    if (warnings.length == 0) print('Checking videos table...created');
-    else if (warnings) print('Checking videos table...', warnings[0].msg);
+    if (warnings.length == 0) {
+        print('Checking videos table...created');
+        // path to root-directory of videos
+        let files = getFiles('bin/videos/');
+        for (let i = 0; i < files.length; i++) {
+            let file = files[i];
+
+            let stats = fs.lstatSync(file.filePath);
+            if (stats.isDirectory()) {
+                // get files only from the sub-directory
+                getFiles(file.filePath)
+                    .filter(f => f.fileName.split('.').length > 0)
+                    .forEach((video) => {
+                        saveToVideos(session, video);
+                    });
+            } else {
+                saveToVideos(session, file);
+            }
+        }
+    } else if (warnings) print('Checking videos table...', warnings[0].msg);
 
     //=============================================================================
     //                         create comments table
@@ -164,8 +184,6 @@ export async function initialize(session) {
     warnings = rs.getWarnings();
     if (warnings.length == 0) print('Checking popularity table...created');
     else if (warnings) print('Checking popularity table...', warnings[0].msg);
-
-    console.log();
 }
 
 export function getConnection() {

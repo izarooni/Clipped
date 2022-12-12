@@ -47,7 +47,8 @@ export function getFiles(directory) {
 }
 
 export async function saveToVideos(session, video) {
-    const displayName = sanitize(video.fileName).split('.').slice(0, -1).join('.');
+    const displayName = video.fileName.split('.').slice(0, -1).join('.');
+    console.log(displayName);
 
     await session.sql(`
     insert into 
