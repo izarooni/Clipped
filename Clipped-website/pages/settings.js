@@ -27,6 +27,9 @@ export default function Settings({ user }) {
         User.verifyUser(local).then(rs => {
             if (!rs) setError('Unknown error');
             else if (rs.error) setError(rs.error);
+
+            // if the remote user loginToken doesn't match we are not in a valid login session
+            // re-enter the password to renew the session
             else if (rs.loginToken == user.loginToken) {
                 overlayEl.current.classList.add('hidden');
                 setSuccess('Login token validated');
@@ -75,7 +78,7 @@ export default function Settings({ user }) {
         <div className="flex">
             <Navbar />
 
-            <div ref={overlayEl} className="fixed h-screen w-screen bg-black/80 flex items-center justify-center flex-col">
+            <div ref={overlayEl} className="z-50 fixed h-screen w-screen bg-black/80 flex items-center justify-center flex-col">
                 <p className="text-4xl p-12 font-mono text-white/60">Enter Password</p>
                 <div className="flex items-baseline space-x-4 text-xl">
                     <input onKeyPress={onLogin} ref={passwordEl} type="password" className="
