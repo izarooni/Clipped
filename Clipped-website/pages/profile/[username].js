@@ -170,7 +170,7 @@ export default function Profile({ user, target }) {
                                     }
                                     {!self ? '' :
                                         <div className="hover:bg-white/5 hover:cursor-pointer border-l border-l-black border-t-yellow-300 border-t-2">
-                                            <Link href="/logout"><i className="fa-solid fa-door-open p-8"></i></Link>
+                                            <a href="/logout"><i className="fa-solid fa-door-open p-8"></i></a>
                                         </div>
                                     }
                                 </div>
