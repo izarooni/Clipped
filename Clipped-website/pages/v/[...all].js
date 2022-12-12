@@ -23,6 +23,7 @@ export default function Video({ video, owner, user }) {
     const commentInputEl = useRef(null);
 
     const [editable, setEditable] = useState(false);
+    const [visible, setVisible] = useState(video.private == 0);
     const [likes, setLikes] = useState(video.likes);
     const [dislikes, setDislikes] = useState(video.dislikes);
     const [error, setError] = useState('');
@@ -33,11 +34,19 @@ export default function Video({ video, owner, user }) {
         if (res.success) setSuccess(res.success);
         if (res.error) setError(res.error);
     };
-    const sendUpdateVideo = async (action) => {
-        likesEl.current.classList.toggle('text-green-500', video.user_review);
-        dislikesEl.current.classList.toggle('text-red-500', !video.user_review);
 
-        return fetch(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/details`, {
+    const updatePopularityUI = () => {
+        if (video.user_review != null) {
+            likesEl.current.classList.toggle('text-green-500', video.user_review);
+            dislikesEl.current.classList.toggle('text-red-500', !video.user_review);
+        } else {
+            likesEl.current.classList.remove('text-green-500');
+            dislikesEl.current.classList.remove('text-red-500');
+        }
+    };
+
+    const sendUpdateVideo = async (action) => {
+        return fetch(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/update`, {
             method: 'POST',
             mode: 'cors',
             cache: 'no-cache',
@@ -79,55 +88,67 @@ export default function Video({ video, owner, user }) {
                 if (res.success) loadComments();
             });
     };
+
     const onSubmitLike = (e) => {
         setError(''); setSuccess('');
 
-        // remove dislike if exists
-        if (!video.user_review) setDislikes(video.dislikes = (dislikes - 1));
-        else return; // can't like a video twice
-
-        // increase video likes and set user review
-        setLikes(video.likes + 1);
-        video.user_review = 1;
-
-        // like action indicates we are sending a user object (auth required)
-        sendUpdateVideo('like').then(res => {
-            if (res.error) {
-                setError(res.error);
+        // if already liked or disliked
+        if (video.user_review != null) {
+            // already liked; unlike
+            if (video.user_review == 1) {
+                delete video.user_review;
+                setLikes(likes - 1);
+            } else {
+                // previously disliked; change ui
+                video.user_review = 1;
+                setLikes(likes + 1);
+                setDislikes(dislikes - 1);
             }
-        });
+        } else {
+            // no user_review; create one
+            video.user_review = 1;
+            setLikes(likes + 1);
+        }
+        updatePopularityUI();
+        sendUpdateVideo('like').then(onMsgResult);
     };
     const onSubmitDislike = (e) => {
         setError(''); setSuccess('');
 
-        // remove likes if exists
-        if (video.user_review) setLikes(video.likes = (likes - 1));
-        else return; // can't dislike a video twice
-
-        // increase video dislikes and set user review
-        setDislikes(video.dislikes + 1);
-        video.user_review = 0;
-
-        // dislike action indicates we are sending a user object (auth required)
-        sendUpdateVideo('dislike').then(res => {
-            if (res.error) {
-                setError(res.error);
+        // if already liked or disliked
+        if (video.user_review != null) {
+            // already disliked; remove
+            if (video.user_review == 0) {
+                delete video.user_review;
+                setDislikes(dislikes - 1);
+            } else {
+                // previously liked; change ui
+                video.user_review = 0;
+                setDislikes(dislikes + 1);
+                setLikes(likes - 1);
             }
-        });
+        } else {
+            // no user_review; create one
+            video.user_review = 0;
+            setDislikes(dislikes + 1);
+        }
+        updatePopularityUI();
+        sendUpdateVideo('dislike').then(onMsgResult);
     };
+
     const onSetVideoPrivate = (e) => {
         setError(''); setSuccess('');
-        if (!user) return;
-        video.private = 0;
-        // private action indicates we are sending a user object (auth required)
+        setVisible(false);
+        video.private = 1;
         sendUpdateVideo('private').then(onMsgResult);
     };
     const onSetVideoPublic = (e) => {
         setError(''); setSuccess('');
-        video.private = 1;
-        // private action indicates we are sending a user object (auth required)
-        sendUpdateVideo('private').then(onMsgResult);
+        setVisible(true);
+        video.private = 0;
+        sendUpdateVideo('public').then(onMsgResult);
     };
+
     const onSetVideoProps = (e) => {
         if (!editable) return;
         setError(''); setSuccess('');
@@ -138,8 +159,9 @@ export default function Video({ video, owner, user }) {
         video.displayName = sTitle;
         video.description = sDescription;
         // private action indicates we are sending a user object (auth required)
-        sendUpdateVideo('private').then(onMsgResult);
+        sendUpdateVideo('update').then(onMsgResult);
     };
+
     var deleteTimestamp;
     const onDeleteDown = () => deleteTimestamp = Date.now();
     const onDeleteUp = () => {
@@ -151,8 +173,7 @@ export default function Video({ video, owner, user }) {
 
         // mark the video for deletion, the server will read this property
         video.delete = true;
-        // private action indicates we are sending a user object (auth required)
-        sendUpdateVideo('private').then(res => {
+        sendUpdateVideo('delete').then(res => {
             onMsgResult(res);
             setTimeout(() => {
                 Router.back();
@@ -160,6 +181,7 @@ export default function Video({ video, owner, user }) {
         });
     };
     const onShowSettings = (e) => setEditable(!editable);
+
     const loadComments = () => {
         fetch(`${process.env.NEXT_PUBLIC_STREAM_SERVER}/video/comments/${video.ID}`, {
             method: 'POST',
@@ -193,8 +215,7 @@ export default function Video({ video, owner, user }) {
     // initialize page
     useEffect(() => {
         loadComments();
-        likesEl.current.classList.toggle('text-green-500', video.user_review);
-        dislikesEl.current.classList.toggle('text-red-500', !video.user_review);
+        updatePopularityUI();
     }, [video]);
 
     return (
@@ -319,12 +340,12 @@ export default function Video({ video, owner, user }) {
                     <div className="flex flex-col md:flex-row space-y-4 border-t border-t-white/10">
                         <div className="flex space-x-4 p-4 flex-grow">
                             <Avatar user={video.ownerID} className="w-12" />
-                            <p className="text-xl">{owner.displayName}</p>
+                            <p className="text-xl">{owner.displayName || owner.username}</p>
                         </div>
 
                         <div className="flex-grow flex items-center justify-center md:justify-end space-x-4 p-4">
                             {(() => {
-                                return video.private
+                                return visible
                                     // show the private icon when private
                                     ? <i onClick={onSetVideoPrivate} className="fa-solid fa-lock py-3 px-4 rounded outline outline-1 outline-white/10 transition-all hover:outline-0 hover:bg-white/20 active:bg-white/10 cursor-pointer"></i>
                                     // show 'open' icon only if the current user session also owns the video
