@@ -7,7 +7,7 @@
 ### Server
 - [Bcrypt](https://github.com/kelektiv/node.bcrypt.js) password encryption
 - [MySQL](https://github.com/mysql/mysql-connector-nodejs) persistence storage
-- CRUD operaetions via express api
+- CRUD operations via express api
 - Singleton login session (token based)
 - Configurable video load batch size
 - [ffmpeg](https://github.com/fluent-ffmpeg/node-fluent-ffmpeg) thumbnail generation
