@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid';
 import Link from 'next/link';
 import Alert from '/components/alert';
 import Navbar from '/components/navbar';
-import * as User from '/lib/models/user';
+import * as User from '../lib/models/user.js';
 
 export default function Login() {
     const [success, setSuccess] = useState('');
@@ -60,8 +60,10 @@ export default function Login() {
             .then(res => {
                 onMsgResult(res);
                 if (!res) return;
-                if (res.ID) {
-                    document.cookie = User.generateCookie(res);
+                if (res.user) {
+                    document.cookie = User.generateCookie(res.user);
+                    localStorage.friends = JSON.stringify(res.friends);
+
                     setInterval(() => {
                         window.location = '/profile';
                     }, 1200);
