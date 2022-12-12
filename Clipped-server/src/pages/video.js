@@ -112,7 +112,7 @@ export function VideoComment(req, res) {
     const { ID } = req.params;
     const { action, user, comment } = req.body;
     if (!user || !user.ID) return error(res, 'invalid user session');
-    else if (!comment) return error(res, 'must enter a message');
+    else if (!comment) return error(res, 'You must enter a message');
     print(`/video/comment/: ${user.username} adding comment to video ${ID}`);
 
     getConnection().then(async (session) => {
