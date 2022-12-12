@@ -5,12 +5,6 @@ function print(s, ...args) {
     console.log(`[database.js] ${s}`, ...args);
 }
 
-export function sanitize(s) {
-    return s
-        .replace(/'/g, "''")
-        .replace(/\\/g, '\\\\')
-}
-
 export async function initialize(session) {
     print('connection established')
 

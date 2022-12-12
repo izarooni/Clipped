@@ -1,4 +1,4 @@
-import { getConnection, sanitize } from '../database.js';
+import { getConnection } from '../database.js';
 import { error } from '../utils.js';
 import fs from 'fs';
 import * as bcrypt from 'bcrypt';

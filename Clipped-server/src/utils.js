@@ -1,5 +1,4 @@
 import { nanoid } from 'nanoid';
-import { sanitize } from './database.js';
 import * as Video from './models/video.js';
 import fs from 'fs';
 import path from 'path';
@@ -50,9 +49,11 @@ export function getFiles(directory) {
 export async function saveToVideos(session, video) {
     const displayName = sanitize(video.fileName).split('.').slice(0, -1).join('.');
 
-    await session.sql(
-        `insert into videos (owner_id, display_name, file_name, file_path)
-        values (1, '${displayName}', '${sanitize(video.fileName)}', '${sanitize(video.filePath)}')
-        on duplicate key update file_name = '${sanitize(video.fileName)}'`
-    ).execute();
+    await session.sql(`
+    insert into 
+    videos (owner_id, display_name, file_name, file_path) 
+    values (1, ?, ?, ?) 
+    on duplicate key update file_name = ?`)
+        .bind(displayName, video.fielName, video.filePath, video.fileName)
+        .execute();
 }
