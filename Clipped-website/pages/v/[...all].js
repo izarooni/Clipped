@@ -23,7 +23,7 @@ export default function Video({ video, owner, user }) {
     const commentInputEl = useRef(null);
 
     const [editable, setEditable] = useState(false);
-    const [visible, setVisible] = useState(video.private == 0);
+    const [$private, setPrivate] = useState(video.private == 1);
     const [likes, setLikes] = useState(video.likes);
     const [dislikes, setDislikes] = useState(video.dislikes);
     const [error, setError] = useState('');
@@ -138,14 +138,18 @@ export default function Video({ video, owner, user }) {
 
     const onSetVideoPrivate = (e) => {
         setError(''); setSuccess('');
-        setVisible(false);
-        video.private = 1;
+        if (user && user.ID == owner.ID) {
+            setPrivate(true);
+            video.private = 1;
+        }
         sendUpdateVideo('private').then(onMsgResult);
     };
     const onSetVideoPublic = (e) => {
         setError(''); setSuccess('');
-        setVisible(true);
-        video.private = 0;
+        if (user && user.ID == owner.ID) {
+            setPrivate(false);
+            video.private = 0;
+        }
         sendUpdateVideo('public').then(onMsgResult);
     };
 
@@ -345,8 +349,7 @@ export default function Video({ video, owner, user }) {
 
                         <div className="flex-grow flex items-center justify-center md:justify-end space-x-4 p-4">
                             {(() => {
-                                return visible
-                                    // show the private icon when private
+                                return !$private
                                     ? <i onClick={onSetVideoPrivate} className="fa-solid fa-lock py-3 px-4 rounded outline outline-1 outline-white/10 transition-all hover:outline-0 hover:bg-white/20 active:bg-white/10 cursor-pointer"></i>
                                     // show 'open' icon only if the current user session also owns the video
                                     : (!user || user.ID != owner.ID) ? '' :

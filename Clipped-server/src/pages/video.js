@@ -191,7 +191,7 @@ export function VideoUpdate(req, res) {
 
         const auth = async () => {
             if (!user) {
-                error(res, 'must be authenticated');
+                error(res, 'Must be authenticated');
                 return false;
             } else if (user.ID != video.ownerID) {
                 error(res, `can't modify a video owned by another person`);

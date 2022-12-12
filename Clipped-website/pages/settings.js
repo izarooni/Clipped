@@ -29,8 +29,8 @@ export default function Settings({ user }) {
             else if (rs.error) setError(rs.error);
             else if (rs.loginToken == user.loginToken) {
                 overlayEl.current.classList.add('hidden');
-                setSuccess('Session authenticated');
-            } else setError('Incorrect password');
+                setSuccess('Login token validated');
+            } else setError('Invalid login session');
         }).catch(e => setError(`${e}`));
     };
     var saveTimestamp;
