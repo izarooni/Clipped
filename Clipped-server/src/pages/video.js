@@ -189,35 +189,26 @@ export function VideoUpdate(req, res) {
 
     getConnection().then(async (session) => {
 
-        const auth = async () => {
-            if (!user) {
-                error(res, 'Must be authenticated');
-                return false;
-            } else if (user.ID != video.ownerID) {
-                error(res, `can't modify a video owned by another person`);
-                return false;
-            }
+        if (!user) {
+            return error(res, 'Must be loggedin');
+        } else if (user.ID != video.ownerID) {
+            return error(res, `Can't modify a video owned by another person`);
+        }
 
-            let rs = await session.sql(`select * from users where id = ? limit 1`).bind(user.ID).execute();
-            let row = rs.fetchOne();
-            if (!row) {
-                error(res, 'user not found');
-                return false;
-            }
+        let rs = await session.sql(`select * from users where id = ? limit 1`).bind(user.ID).execute();
+        let row = rs.fetchOne();
+        if (!row) {
+            return error(res, 'Invalid login session');
+        }
 
-            const remote = User.fromArray(row);
-            if (remote.loginToken != user.loginToken) {
-                error(res, 'user not authenticated');
-                return false;
-            }
-
-            return true;
-        };
+        const remote = User.fromArray(row);
+        if (remote.loginToken != user.loginToken) {
+            return error(res, 'Invalid login session');
+        }
 
         switch (action) {
             case 'private':
             case 'public': {
-                if (!auth()) return;
                 video.private = (action == 'private') ? 1 : 0;
 
                 await session
@@ -231,7 +222,6 @@ export function VideoUpdate(req, res) {
             }
             case 'like':
             case 'dislike': {
-                if (!auth()) return;
                 let value = (action == 'like' ? 1 : 0);
 
                 let rs = await session
