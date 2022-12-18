@@ -50,12 +50,14 @@ app.post/**/('/profile/friend/:ID?',/**/(req, res) => ProfileHandler.ProfileAddF
 app.post/**/('/profile/update',     /**/(req, res) => ProfileHandler.ProfileUpdate(req, res));
 app.post/**/('/profile/:ID',        /**/(req, res) => ProfileHandler.ProfilePage(req, res));
 
-app.listen(8888, () => console.log(`
+const server = app.listen(process.env.port, process.env.host, () => console.log(`
 ONLIN 
      x
      x      Server is now online
-     x         localhost:8888
+     x          ${process.env.port}:${process.env.host}
      x
      .
 ONLINE
 `));
+
+server.keepAliveTimeout = 61 * 1000;
